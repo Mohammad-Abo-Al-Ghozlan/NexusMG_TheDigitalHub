@@ -28,12 +28,12 @@ import { useState, useEffect } from 'react'
 
 const traineeNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/dashboard/cv', label: 'CV Evaluation', icon: FileText },
-  { href: '/dashboard/github', label: 'GitHub Analysis', icon: Github },
-  { href: '/dashboard/linkedin', label: 'LinkedIn Review', icon: Linkedin },
-  { href: '/dashboard/idea', label: 'Idea Pitch', icon: Lightbulb },
+  { href: '/dashboard/cv', label: 'CV Audit', icon: FileText },
+  { href: '/dashboard/github', label: 'GitHub Forensics', icon: Github },
+  { href: '/dashboard/linkedin', label: 'LinkedIn Signal', icon: Linkedin },
+  { href: '/dashboard/idea', label: 'Architecture Audit', icon: Lightbulb },
   { href: '/dashboard/interview', label: 'Mock Interview', icon: MessageSquare },
-  { href: '/dashboard/english', label: 'English Test', icon: Languages },
+  { href: '/dashboard/english', label: 'English Proficiency', icon: Languages },
 ]
 
 const instructorNavItems = [

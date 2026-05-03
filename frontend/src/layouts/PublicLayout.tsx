@@ -49,14 +49,14 @@ export function PublicLayout() {
               </div>
               <div>
                 <span className="text-lg font-bold text-[#F0F0FF]">NexusMG</span>
-                <p className="text-xs text-[#44445A]">Evaluate. Improve. Succeed.</p>
+                <p className="text-xs text-[#44445A]">Standardize. Audit. Benchmark.</p>
               </div>
             </div>
 
             {/* Center — Tagline */}
             <div className="text-center">
-              <p className="text-sm font-semibold text-[#8888AA]">AI-Powered Developer Readiness Platform</p>
-              <p className="mt-1 text-xs text-[#44445A]">Helping trainees become job-ready through AI-driven evaluation</p>
+              <p className="text-sm font-semibold text-[#8888AA]">The Developer Readiness Engine</p>
+              <p className="mt-1 text-xs text-[#44445A]">Quantifying engineering employability with data-driven forensics.</p>
             </div>
 
             {/* Right — Quick Links */}
