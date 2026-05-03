@@ -1,0 +1,401 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ═══════════════════════════════════════════
+   FONTS
+   ═══════════════════════════════════════════ */
+
+@theme inline {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Core Surfaces */
+  --color-nexus-bg: #0A0A0F;
+  --color-nexus-surface: #111118;
+  --color-nexus-surface-hover: #16161F;
+  --color-nexus-border: #1E1E2E;
+  --color-nexus-border-hover: #2A2A3E;
+
+  /* Brand */
+  --color-nexus-violet: #6C63FF;
+  --color-nexus-violet-hover: #5B54E6;
+  --color-nexus-violet-glow: #6C63FF33;
+  --color-nexus-violet-subtle: #6C63FF1A;
+  --color-nexus-violet-muted: #6C63FF0D;
+  --color-nexus-cyan: #00D4FF;
+  --color-nexus-cyan-glow: #00D4FF33;
+
+  /* Status */
+  --color-nexus-success: #00C896;
+  --color-nexus-success-subtle: #00C89615;
+  --color-nexus-warning: #FFB830;
+  --color-nexus-warning-subtle: #FFB83015;
+  --color-nexus-danger: #FF4D6D;
+  --color-nexus-danger-subtle: #FF4D6D15;
+
+  /* Text */
+  --color-nexus-text: #F0F0FF;
+  --color-nexus-text-secondary: #8888AA;
+  --color-nexus-text-muted: #44445A;
+
+  /* Semantic tokens mapped to Tailwind */
+  --color-background: #0A0A0F;
+  --color-foreground: #F0F0FF;
+  --color-card: #111118;
+  --color-card-foreground: #F0F0FF;
+  --color-popover: #111118;
+  --color-popover-foreground: #F0F0FF;
+  --color-primary: #6C63FF;
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: #1E1E2E;
+  --color-secondary-foreground: #F0F0FF;
+  --color-muted: #16161F;
+  --color-muted-foreground: #8888AA;
+  --color-accent: #00D4FF;
+  --color-accent-foreground: #FFFFFF;
+  --color-destructive: #FF4D6D;
+  --color-destructive-foreground: #FFFFFF;
+  --color-border: #1E1E2E;
+  --color-input: #1E1E2E;
+  --color-ring: #6C63FF;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+}
+
+/* ═══════════════════════════════════════════
+   BASE
+   ═══════════════════════════════════════════ */
+* {
+  border-color: var(--color-border);
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ═══════════════════════════════════════════
+   SCROLLBAR
+   ═══════════════════════════════════════════ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #0A0A0F; }
+::-webkit-scrollbar-thumb { background: #1E1E2E; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #2A2A3E; }
+
+/* ═══════════════════════════════════════════
+   GLASSMORPHISM
+   ═══════════════════════════════════════════ */
+.glass {
+  background: rgba(17, 17, 24, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(108, 99, 255, 0.1);
+}
+.glass-strong {
+  background: rgba(17, 17, 24, 0.9);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 1px solid rgba(108, 99, 255, 0.15);
+}
+
+/* ═══════════════════════════════════════════
+   GLOW UTILITIES
+   ═══════════════════════════════════════════ */
+.glow-violet       { box-shadow: 0 0 20px rgba(108, 99, 255, 0.2); }
+.glow-violet-strong{ box-shadow: 0 0 40px rgba(108, 99, 255, 0.3), 0 0 80px rgba(108, 99, 255, 0.1); }
+.glow-cyan         { box-shadow: 0 0 20px rgba(0, 212, 255, 0.2); }
+.text-glow-violet  { text-shadow: 0 0 30px rgba(108, 99, 255, 0.5); }
+
+/* ═══════════════════════════════════════════
+   GRADIENT UTILITIES
+   ═══════════════════════════════════════════ */
+.gradient-violet-cyan { background: linear-gradient(135deg, #6C63FF, #00D4FF); }
+.gradient-text-violet-cyan {
+  background: linear-gradient(135deg, #6C63FF, #00D4FF);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ═══════════════════════════════════════════
+   SCORE FONT
+   ═══════════════════════════════════════════ */
+.font-score {
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ═══════════════════════════════════════════
+   FEEDBACK PANEL ACCENTS
+   ═══════════════════════════════════════════ */
+.feedback-strength   { background: rgba(0,200,150,.08); border:1px solid rgba(0,200,150,.15); color:#00C896; }
+.feedback-improvement{ background: rgba(255,184,48,.08); border:1px solid rgba(255,184,48,.15); color:#FFB830; }
+.feedback-suggestion { background: rgba(0,212,255,.08);  border:1px solid rgba(0,212,255,.15);  color:#00D4FF; }
+
+/* ═══════════════════════════════════════════
+   FOCUS RING — VIOLET
+   ═══════════════════════════════════════════ */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+button:focus-visible {
+  box-shadow: none;
+}
+
+/* ═══════════════════════════════════════════╗
+   ██   ANIMATIONS   ██
+   (all wrapped in prefers-reduced-motion)
+  ╚═══════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: no-preference) {
+
+  /* ── 1. PAGE ENTRY ─────────────────────── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0);    }
+  }
+  .animate-fade-up {
+    animation: fadeUp 300ms ease-out both;
+  }
+  /* legacy alias kept */
+  .animate-fade-in-up {
+    animation: fadeUp 300ms ease-out both;
+  }
+
+  /* ── 2. CARD ENTRY ─────────────────────── */
+  @keyframes cardEntry {
+    from { opacity: 0; transform: scale(0.96) translateY(10px); }
+    to   { opacity: 1; transform: scale(1)    translateY(0);    }
+  }
+  .animate-card-entry {
+    animation: cardEntry 300ms ease-out both;
+  }
+
+  /* ── 3. STAGGER CHILDREN ──────────────── */
+  .stagger-children > * {
+    animation: cardEntry 350ms ease-out both;
+  }
+  .stagger-children > *:nth-child(1) { animation-delay:  40ms; }
+  .stagger-children > *:nth-child(2) { animation-delay: 100ms; }
+  .stagger-children > *:nth-child(3) { animation-delay: 160ms; }
+  .stagger-children > *:nth-child(4) { animation-delay: 220ms; }
+  .stagger-children > *:nth-child(5) { animation-delay: 280ms; }
+  .stagger-children > *:nth-child(6) { animation-delay: 340ms; }
+  .stagger-children > *:nth-child(7) { animation-delay: 400ms; }
+  .stagger-children > *:nth-child(8) { animation-delay: 460ms; }
+
+  /* ── 4. NAV ITEM STAGGER (sidebar) ────── */
+  @keyframes slideInLeft {
+    from { opacity: 0; transform: translateX(-14px); }
+    to   { opacity: 1; transform: translateX(0);     }
+  }
+  .nav-stagger > * {
+    animation: slideInLeft 280ms ease-out both;
+  }
+  .nav-stagger > *:nth-child(1) { animation-delay:  60ms; }
+  .nav-stagger > *:nth-child(2) { animation-delay: 110ms; }
+  .nav-stagger > *:nth-child(3) { animation-delay: 160ms; }
+  .nav-stagger > *:nth-child(4) { animation-delay: 210ms; }
+  .nav-stagger > *:nth-child(5) { animation-delay: 260ms; }
+  .nav-stagger > *:nth-child(6) { animation-delay: 310ms; }
+  .nav-stagger > *:nth-child(7) { animation-delay: 360ms; }
+  .nav-stagger > *:nth-child(8) { animation-delay: 410ms; }
+
+  /* ── 5. ACTIVE NAV LEFT BORDER ─────────── */
+  @keyframes borderGrow {
+    from { transform: translateY(-50%) scaleY(0); }
+    to   { transform: translateY(-50%) scaleY(1); }
+  }
+  .nav-active-indicator {
+    animation: borderGrow 250ms ease-out both;
+    transform-origin: center;
+  }
+
+  /* ── 6. PROGRESS BAR FILL ───────────────── */
+  @keyframes progressFill {
+    from { transform: translateX(-100%); }
+    /* final translateX set inline per value */
+  }
+  .progress-animated {
+    animation: progressFill 800ms ease-out both;
+  }
+
+  /* ── 7. PROGRESS SHIMMER ────────────────── */
+  @keyframes progressShimmer {
+    0%   { background-position: -200% center; }
+    100% { background-position:  200% center; }
+  }
+  .progress-shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255,255,255,0.18) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: progressShimmer 1.6s ease-in-out 800ms infinite;
+    border-radius: inherit;
+  }
+
+  /* ── 8. SKELETON SHIMMER ────────────────── */
+  @keyframes shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position:  200% 0; }
+  }
+  .skeleton {
+    background: linear-gradient(90deg, #16161F 25%, #1E1E2E 50%, #16161F 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+    border-radius: 0.5rem;
+  }
+
+  /* ── 9. BADGE PULSE — DANGER ────────────── */
+  @keyframes dangerPulse {
+    0%, 100% { box-shadow: 0 0 0   0 rgba(255, 77,109, 0.4); }
+    50%      { box-shadow: 0 0 0 6px rgba(255, 77,109, 0);   }
+  }
+  .badge-pulse-danger {
+    animation: dangerPulse 2s ease-in-out infinite;
+  }
+
+  /* ── 10. BADGE GLOW — SUCCESS ──────────── */
+  @keyframes successGlow {
+    0%, 100% { box-shadow: 0 0 4px rgba(0,200,150, 0.3); }
+    50%      { box-shadow: 0 0 12px rgba(0,200,150, 0.6); }
+  }
+  .badge-glow-success {
+    animation: successGlow 2.5s ease-in-out infinite;
+  }
+
+  /* ── 11. BUTTON VIOLET GLOW PULSE ──────── */
+  @keyframes violetGlowPulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(108,99,255,0.25); }
+    50%      { box-shadow: 0 0 35px rgba(108,99,255,0.50); }
+  }
+  .btn-glow-pulse:hover {
+    animation: violetGlowPulse 1.8s ease-in-out infinite;
+  }
+
+  /* ── 12. CARD HOVER LIFT ────────────────── */
+  .card-hover-lift {
+    transition: transform 200ms ease-out, box-shadow 200ms ease-out, border-color 200ms ease-out;
+  }
+  .card-hover-lift:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 30px rgba(108,99,255,0.15);
+  }
+
+  /* ── 13. FEEDBACK SECTION STAGGER ──────── */
+  @keyframes feedbackFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0);   }
+  }
+  .feedback-stagger > * {
+    animation: feedbackFadeIn 400ms ease-out both;
+  }
+  .feedback-stagger > *:nth-child(1) { animation-delay: 100ms; }
+  .feedback-stagger > *:nth-child(2) { animation-delay: 200ms; }
+  .feedback-stagger > *:nth-child(3) { animation-delay: 300ms; }
+  .feedback-stagger > *:nth-child(4) { animation-delay: 400ms; }
+  .feedback-stagger > *:nth-child(5) { animation-delay: 500ms; }
+  .feedback-stagger > *:nth-child(6) { animation-delay: 600ms; }
+
+  /* ── 14. TABLE ROW STAGGER ──────────────── */
+  .table-stagger > * {
+    animation: fadeUp 300ms ease-out both;
+  }
+  .table-stagger > *:nth-child(1)  { animation-delay:  40ms; }
+  .table-stagger > *:nth-child(2)  { animation-delay:  90ms; }
+  .table-stagger > *:nth-child(3)  { animation-delay: 140ms; }
+  .table-stagger > *:nth-child(4)  { animation-delay: 190ms; }
+  .table-stagger > *:nth-child(5)  { animation-delay: 240ms; }
+  .table-stagger > *:nth-child(6)  { animation-delay: 290ms; }
+  .table-stagger > *:nth-child(7)  { animation-delay: 340ms; }
+  .table-stagger > *:nth-child(8)  { animation-delay: 390ms; }
+  .table-stagger > *:nth-child(9)  { animation-delay: 440ms; }
+  .table-stagger > *:nth-child(10) { animation-delay: 490ms; }
+
+  /* ── 15. ANIMATED GRID BG ───────────────── */
+  @keyframes gridMove {
+    0%   { background-position: 0 0; }
+    100% { background-position: 60px 60px; }
+  }
+  .nexus-grid-bg {
+    background-image:
+      linear-gradient(rgba(108,99,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(108,99,255,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    animation: gridMove 20s linear infinite;
+  }
+
+  /* ── 16. LOGO GLOW BREATHE ──────────────── */
+  @keyframes logoBreathe {
+    0%, 100% { box-shadow: 0 0 20px rgba(108,99,255,0.4); }
+    50%      { box-shadow: 0 0 40px rgba(108,99,255,0.7); }
+  }
+  .logo-breathe {
+    animation: logoBreathe 3s ease-in-out infinite;
+  }
+
+  /* ── 17. SCORE RING DRAW ────────────────── */
+  @keyframes ringDraw {
+    from { stroke-dashoffset: 352; }
+    to   { stroke-dashoffset: 0;   }
+  }
+  .score-ring-animate {
+    animation: ringDraw 1200ms cubic-bezier(0.4,0,0.2,1) both;
+  }
+
+  /* ── 18. DIALOG OPEN / CLOSE ────────────── */
+  /* handled via Radix data-state + tailwind in dialog.tsx,
+     extra keyframe for scale-fade */
+  @keyframes dialogIn {
+    from { opacity: 0; transform: translate(-50%,-48%) scale(0.95); }
+    to   { opacity: 1; transform: translate(-50%,-50%) scale(1);    }
+  }
+  @keyframes dialogOut {
+    from { opacity: 1; transform: translate(-50%,-50%) scale(1);    }
+    to   { opacity: 0; transform: translate(-50%,-48%) scale(0.95); }
+  }
+
+  /* ── 19. TOAST SLIDE-IN (sonner override) ── */
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateX(calc(100% + 16px)); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes toastOut {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(calc(100% + 16px)); }
+  }
+  [data-sonner-toaster] [data-styled] {
+    animation: toastIn 300ms ease-out !important;
+  }
+  [data-sonner-toaster] [data-styled][data-removed] {
+    animation: toastOut 200ms ease-in forwards !important;
+  }
+
+} /* end @media prefers-reduced-motion: no-preference */
+
+/* ── Non-animated fallback for skeleton ── */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    background: #16161F;
+    border-radius: 0.5rem;
+  }
+  .nexus-grid-bg {
+    background-image:
+      linear-gradient(rgba(108,99,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(108,99,255,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+}
