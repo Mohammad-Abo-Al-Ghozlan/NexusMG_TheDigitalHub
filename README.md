@@ -267,8 +267,8 @@ nexusmg/
 ### 1️⃣ Clone the Repository
 
 ```bash
-git clone https://github.com/your-org/nexusmg.git
-cd nexusmg
+git clone https://github.com/Mohammad-Abo-Al-Ghozlan/NexusMG_TDH.git
+cd NexusMG_TDH
 ```
 
 ### 2️⃣ Database Setup
@@ -652,18 +652,6 @@ This project is licensed under the MIT License — see the [LICENSE](LICENSE) fi
 ---
 
 ## 👥 Team
-
-| Role | Responsibility |
-|------|----------------|
-| **Project Lead** | Architecture & Strategy |
-| **Frontend Team** | React UI Development |
-| **Backend Team** | FastAPI & AI Integration |
-| **DevOps** | Infrastructure & CI/CD |
-| **QA** | Testing & Quality Assurance |
-
----
-
-## 📞 Support
 
 For questions, bug reports, or support requests, please reach out to the authors directly:
 
