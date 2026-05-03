@@ -267,8 +267,8 @@ nexusmg/
 ### 1️⃣ Clone the Repository
 
 ```bash
-git clone https://github.com/Mohammad-Abo-Al-Ghozlan/NexusMG_TDH.git
-cd NexusMG_TDH
+git clone https://github.com/Mohammad-Abo-Al-Ghozlan/NexusMG_TheDigitalHub.git
+cd NexusMG_TheDigitalHub
 ```
 
 ### 2️⃣ Database Setup
