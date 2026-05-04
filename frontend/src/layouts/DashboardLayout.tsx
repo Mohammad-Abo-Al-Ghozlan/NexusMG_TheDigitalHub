@@ -25,6 +25,8 @@ import {
   ChevronsRight,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { ScrollReveal } from '@/components/ui/ScrollReveal'
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 
 const traineeNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -40,6 +42,7 @@ const instructorNavItems = [
   { href: '/instructor', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/instructor/trainees', label: 'Trainees', icon: Users },
   { href: '/instructor/analytics', label: 'Analytics', icon: BarChart3 },
+  { href: '/instructor/profile', label: 'Profile', icon: User },
 ]
 
 type SidebarMode = 'full' | 'icon' | 'hidden'
@@ -144,7 +147,7 @@ export function DashboardLayout() {
 
         {/* Navigation */}
         <ScrollArea className="flex-1 px-2 py-3">
-          <nav className="flex flex-col gap-1 nav-stagger">
+          <nav className="flex flex-col gap-1">
             {navItems.map((item) => {
               const isActive = location.pathname === item.href
               return (
@@ -218,7 +221,7 @@ export function DashboardLayout() {
                 </div>
               </div>
               <div className="mt-2 flex gap-2">
-                <Link to={user?.role === 'trainee' ? '/dashboard/profile' : '/instructor'} className="flex-1">
+                <Link to={user?.role === 'trainee' ? '/dashboard/profile' : '/instructor/profile'} className="flex-1">
                   <Button variant="outline" size="sm" className="w-full text-xs">
                     <User className="mr-1.5 h-3.5 w-3.5" />
                     Profile
@@ -314,7 +317,7 @@ export function DashboardLayout() {
             </div>
           </div>
           <div className="mt-2 flex gap-2">
-            <Link to={user?.role === 'trainee' ? '/dashboard/profile' : '/instructor'} className="flex-1">
+            <Link to={user?.role === 'trainee' ? '/dashboard/profile' : '/instructor/profile'} className="flex-1">
               <Button variant="outline" size="sm" className="w-full text-xs">
                 <User className="mr-1.5 h-3.5 w-3.5" />
                 Profile
@@ -372,9 +375,11 @@ export function DashboardLayout() {
           "pb-20 md:pb-0 pt-0"
         )}
       >
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 animate-fade-in-up">
-          <Outlet />
-        </div>
+        <ErrorBoundary>
+          <ScrollReveal key={location.pathname} threshold={0} className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 animate-fade-in-up">
+            <Outlet />
+          </ScrollReveal>
+        </ErrorBoundary>
       </main>
     </div>
   )

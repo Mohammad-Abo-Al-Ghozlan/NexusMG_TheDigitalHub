@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { cvApi, githubApi, linkedinApi, ideaApi, interviewApi, englishApi, readinessApi } from '@/services/api'
+import { api } from '@/services/api'
 
 export interface EvaluationResult {
   id: string
@@ -8,6 +8,7 @@ export interface EvaluationResult {
   feedback: string
   strengths: string[]
   improvements: string[]
+  details?: Record<string, unknown>
   created_at: string
 }
 
@@ -26,30 +27,30 @@ export interface ReadinessScore {
 
 interface EvaluationState {
   // CV
-  cvEvaluations: EvaluationResult[]
+  cvResults: EvaluationResult[]
   cvLoading: boolean
-  uploadCV: (file: File) => Promise<EvaluationResult>
-  fetchCVEvaluations: () => Promise<void>
-  
+  submitCV: (file: File) => Promise<void>
+  fetchCVResults: () => Promise<void>
+
   // GitHub
   githubEvaluations: EvaluationResult[]
   githubLoading: boolean
-  evaluateGitHub: (username: string) => Promise<EvaluationResult>
+  evaluateGitHub: (username: string) => Promise<void>
   fetchGitHubEvaluations: () => Promise<void>
-  
+
   // LinkedIn
   linkedinEvaluations: EvaluationResult[]
   linkedinLoading: boolean
-  evaluateLinkedIn: (profileUrl: string) => Promise<EvaluationResult>
-  submitManualLinkedIn: (data: Record<string, unknown>) => Promise<EvaluationResult>
+  evaluateLinkedIn: (profileUrl: string) => Promise<void>
+  submitManualLinkedIn: (data: Record<string, unknown>) => Promise<void>
   fetchLinkedInEvaluations: () => Promise<void>
-  
+
   // Idea
   ideaEvaluations: EvaluationResult[]
   ideaLoading: boolean
-  submitIdea: (data: { title: string; description: string; tech_stack: string[] }) => Promise<EvaluationResult>
+  submitIdea: (data: { title: string; description: string; tech_stack: string[] }) => Promise<void>
   fetchIdeaEvaluations: () => Promise<void>
-  
+
   // Interview
   interviewResults: EvaluationResult[]
   interviewLoading: boolean
@@ -57,7 +58,7 @@ interface EvaluationState {
   startInterview: (techStack: string[]) => Promise<{ id: string; questions: unknown[] }>
   submitInterviewAnswer: (interviewId: string, questionId: string, answer: string) => Promise<void>
   fetchInterviewResults: () => Promise<void>
-  
+
   // English
   englishResults: EvaluationResult[]
   englishLoading: boolean
@@ -65,252 +66,212 @@ interface EvaluationState {
   startEnglish: () => Promise<{ id: string; questions: unknown[] }>
   submitEnglishAnswer: (assessmentId: string, questionId: string, answer: string) => Promise<void>
   fetchEnglishResults: () => Promise<void>
-  
+
   // Readiness
   readinessScore: ReadinessScore | null
   readinessLoading: boolean
   fetchReadinessScore: () => Promise<void>
-  
-  // Error handling
+
+  // Error
   error: string | null
   clearError: () => void
 }
 
-export const useEvaluationStore = create<EvaluationState>((set, get) => ({
-  // CV State
-  cvEvaluations: [],
+// VITE_API_URL = http://localhost:8000/api/v1
+// So all paths here should be relative without /v1 prefix, e.g. '/evaluations/cv/...'
+const safeFetch = async <T>(fn: () => Promise<T>): Promise<T | null> => {
+  try {
+    return await fn()
+  } catch {
+    return null
+  }
+}
+
+export const useEvaluationStore = create<EvaluationState>((set) => ({
+  // ── CV ──────────────────────────────────────────────────────────
+  cvResults: [],
   cvLoading: false,
-  
-  uploadCV: async (file: File) => {
+
+  submitCV: async (file: File) => {
     set({ cvLoading: true, error: null })
     try {
-      const response = await cvApi.upload(file)
-      const evaluation = response.data
-      set((state) => ({ 
-        cvEvaluations: [evaluation, ...state.cvEvaluations],
-        cvLoading: false 
-      }))
-      return evaluation
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } } }
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await api.post('/evaluations/cv/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      set((s) => ({ cvResults: [res.data, ...s.cvResults], cvLoading: false }))
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { detail?: string } } }
       set({ error: err.response?.data?.detail || 'CV upload failed', cvLoading: false })
-      throw error
+      throw e
     }
   },
-  
-  fetchCVEvaluations: async () => {
+
+  fetchCVResults: async () => {
     set({ cvLoading: true })
-    try {
-      const response = await cvApi.getMyEvaluations()
-      set({ cvEvaluations: response.data, cvLoading: false })
-    } catch {
-      set({ cvLoading: false })
-    }
+    const res = await safeFetch(() => api.get('/evaluations/cv/latest'))
+    set({ cvResults: res ? [res.data] : [], cvLoading: false })
   },
-  
-  // GitHub State
+
+  // ── GitHub ──────────────────────────────────────────────────────
   githubEvaluations: [],
   githubLoading: false,
-  
+
   evaluateGitHub: async (username: string) => {
     set({ githubLoading: true, error: null })
     try {
-      const response = await githubApi.evaluate(username)
-      const evaluation = response.data
-      set((state) => ({ 
-        githubEvaluations: [evaluation, ...state.githubEvaluations],
-        githubLoading: false 
-      }))
-      return evaluation
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } } }
+      const res = await api.post('/evaluations/github/analyze', { username })
+      set((s) => ({ githubEvaluations: [res.data, ...s.githubEvaluations], githubLoading: false }))
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { detail?: string } } }
       set({ error: err.response?.data?.detail || 'GitHub evaluation failed', githubLoading: false })
-      throw error
+      throw e
     }
   },
-  
+
   fetchGitHubEvaluations: async () => {
     set({ githubLoading: true })
-    try {
-      const response = await githubApi.getMyEvaluations()
-      set({ githubEvaluations: response.data, githubLoading: false })
-    } catch {
-      set({ githubLoading: false })
-    }
+    const res = await safeFetch(() => api.get('/evaluations/github/latest'))
+    set({ githubEvaluations: res ? [res.data] : [], githubLoading: false })
   },
-  
-  // LinkedIn State
+
+  // ── LinkedIn ────────────────────────────────────────────────────
   linkedinEvaluations: [],
   linkedinLoading: false,
-  
+
   evaluateLinkedIn: async (profileUrl: string) => {
     set({ linkedinLoading: true, error: null })
     try {
-      const response = await linkedinApi.evaluate(profileUrl)
-      const evaluation = response.data
-      set((state) => ({ 
-        linkedinEvaluations: [evaluation, ...state.linkedinEvaluations],
-        linkedinLoading: false 
-      }))
-      return evaluation
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } } }
+      const res = await api.post('/evaluations/linkedin/analyze', { profile_url: profileUrl })
+      set((s) => ({ linkedinEvaluations: [res.data, ...s.linkedinEvaluations], linkedinLoading: false }))
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { detail?: string } } }
       set({ error: err.response?.data?.detail || 'LinkedIn evaluation failed', linkedinLoading: false })
-      throw error
+      throw e
     }
   },
-  
+
   submitManualLinkedIn: async (data: Record<string, unknown>) => {
     set({ linkedinLoading: true, error: null })
     try {
-      const response = await linkedinApi.submitManual(data)
-      const evaluation = response.data
-      set((state) => ({ 
-        linkedinEvaluations: [evaluation, ...state.linkedinEvaluations],
-        linkedinLoading: false 
-      }))
-      return evaluation
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } } }
+      const res = await api.post('/evaluations/linkedin/manual', data)
+      set((s) => ({ linkedinEvaluations: [res.data, ...s.linkedinEvaluations], linkedinLoading: false }))
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { detail?: string } } }
       set({ error: err.response?.data?.detail || 'LinkedIn submission failed', linkedinLoading: false })
-      throw error
+      throw e
     }
   },
-  
+
   fetchLinkedInEvaluations: async () => {
     set({ linkedinLoading: true })
-    try {
-      const response = await linkedinApi.getMyEvaluations()
-      set({ linkedinEvaluations: response.data, linkedinLoading: false })
-    } catch {
-      set({ linkedinLoading: false })
-    }
+    const res = await safeFetch(() => api.get('/evaluations/linkedin/latest'))
+    set({ linkedinEvaluations: res ? [res.data] : [], linkedinLoading: false })
   },
-  
-  // Idea State
+
+  // ── Idea ────────────────────────────────────────────────────────
   ideaEvaluations: [],
   ideaLoading: false,
-  
+
   submitIdea: async (data) => {
     set({ ideaLoading: true, error: null })
     try {
-      const response = await ideaApi.submit(data)
-      const evaluation = response.data
-      set((state) => ({ 
-        ideaEvaluations: [evaluation, ...state.ideaEvaluations],
-        ideaLoading: false 
-      }))
-      return evaluation
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } } }
+      const res = await api.post('/evaluations/idea/submit', data)
+      set((s) => ({ ideaEvaluations: [res.data, ...s.ideaEvaluations], ideaLoading: false }))
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { detail?: string } } }
       set({ error: err.response?.data?.detail || 'Idea submission failed', ideaLoading: false })
-      throw error
+      throw e
     }
   },
-  
+
   fetchIdeaEvaluations: async () => {
     set({ ideaLoading: true })
-    try {
-      const response = await ideaApi.getMyEvaluations()
-      set({ ideaEvaluations: response.data, ideaLoading: false })
-    } catch {
-      set({ ideaLoading: false })
-    }
+    const res = await safeFetch(() => api.get('/evaluations/idea/latest'))
+    set({ ideaEvaluations: res ? [res.data] : [], ideaLoading: false })
   },
-  
-  // Interview State
+
+  // ── Interview ───────────────────────────────────────────────────
   interviewResults: [],
   interviewLoading: false,
   currentInterview: null,
-  
+
   startInterview: async (techStack: string[]) => {
     set({ interviewLoading: true, error: null })
     try {
-      const response = await interviewApi.start(techStack)
-      const interview = response.data
-      set({ currentInterview: interview, interviewLoading: false })
-      return interview
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } } }
+      const res = await api.post('/evaluations/interview/start', { tech_stack: techStack })
+      set({ currentInterview: res.data, interviewLoading: false })
+      return res.data
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { detail?: string } } }
       set({ error: err.response?.data?.detail || 'Failed to start interview', interviewLoading: false })
-      throw error
+      throw e
     }
   },
-  
+
   submitInterviewAnswer: async (interviewId: string, questionId: string, answer: string) => {
     try {
-      await interviewApi.submitAnswer(interviewId, questionId, answer)
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } } }
+      await api.post(`/evaluations/interview/${interviewId}/answer`, { question_id: questionId, answer })
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { detail?: string } } }
       set({ error: err.response?.data?.detail || 'Failed to submit answer' })
-      throw error
+      throw e
     }
   },
-  
+
   fetchInterviewResults: async () => {
     set({ interviewLoading: true })
-    try {
-      const response = await interviewApi.getMyInterviews()
-      set({ interviewResults: response.data, interviewLoading: false })
-    } catch {
-      set({ interviewLoading: false })
-    }
+    const res = await safeFetch(() => api.get('/evaluations/interview/my'))
+    set({ interviewResults: res ? (Array.isArray(res.data) ? res.data : [res.data]) : [], interviewLoading: false })
   },
-  
-  // English State
+
+  // ── English ─────────────────────────────────────────────────────
   englishResults: [],
   englishLoading: false,
   currentAssessment: null,
-  
+
   startEnglish: async () => {
     set({ englishLoading: true, error: null })
     try {
-      const response = await englishApi.start()
-      const assessment = response.data
-      set({ currentAssessment: assessment, englishLoading: false })
-      return assessment
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } } }
+      const res = await api.post('/evaluations/english/start')
+      set({ currentAssessment: res.data, englishLoading: false })
+      return res.data
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { detail?: string } } }
       set({ error: err.response?.data?.detail || 'Failed to start assessment', englishLoading: false })
-      throw error
+      throw e
     }
   },
-  
+
   submitEnglishAnswer: async (assessmentId: string, questionId: string, answer: string) => {
     try {
-      await englishApi.submitAnswer(assessmentId, questionId, answer)
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } } }
+      await api.post(`/evaluations/english/${assessmentId}/answer`, { question_id: questionId, answer })
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { detail?: string } } }
       set({ error: err.response?.data?.detail || 'Failed to submit answer' })
-      throw error
+      throw e
     }
   },
-  
+
   fetchEnglishResults: async () => {
     set({ englishLoading: true })
-    try {
-      const response = await englishApi.getMyAssessments()
-      set({ englishResults: response.data, englishLoading: false })
-    } catch {
-      set({ englishLoading: false })
-    }
+    const res = await safeFetch(() => api.get('/evaluations/english/my'))
+    set({ englishResults: res ? (Array.isArray(res.data) ? res.data : [res.data]) : [], englishLoading: false })
   },
-  
-  // Readiness State
+
+  // ── Readiness ───────────────────────────────────────────────────
   readinessScore: null,
   readinessLoading: false,
-  
+
   fetchReadinessScore: async () => {
     set({ readinessLoading: true })
-    try {
-      const response = await readinessApi.getOverallScore()
-      set({ readinessScore: response.data, readinessLoading: false })
-    } catch {
-      set({ readinessLoading: false })
-    }
+    // Endpoint may not be implemented yet — silently return null
+    const res = await safeFetch(() => api.get('/readiness/score'))
+    set({ readinessScore: res ? res.data : null, readinessLoading: false })
   },
-  
-  // Error
+
+  // ── Error ────────────────────────────────────────────────────────
   error: null,
   clearError: () => set({ error: null }),
 }))

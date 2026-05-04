@@ -18,7 +18,11 @@ import {
   AlertCircle,
   TrendingUp,
   Search,
+  Mail,
+  Phone,
+  Globe,
 } from 'lucide-react'
+import { ScrollReveal } from '@/components/ui/ScrollReveal'
 
 const features = [
   { 
@@ -73,53 +77,55 @@ export function LandingPage() {
           1. HERO (CRITICAL)
          ══════════════════════════════════════ */}
       <section className="relative overflow-hidden py-20 md:py-32">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="mx-auto max-w-3xl text-center">
-            <div className="animate-fade-up" style={{ animationDelay: '0ms' }}>
-              <Badge
-                variant="secondary"
-                className="mb-6 border-[#6C63FF30] bg-[#6C63FF15] text-[#6C63FF] transition-all duration-200 hover:bg-[#6C63FF25]"
+        <ScrollReveal once={true} threshold={0.05}>
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="mx-auto max-w-3xl text-center">
+              <div className="animate-fade-up" style={{ animationDelay: '0ms' }}>
+                <Badge
+                  variant="secondary"
+                  className="mb-6 border-[#6C63FF30] bg-[#6C63FF15] text-[#6C63FF] transition-all duration-200 hover:bg-[#6C63FF25]"
+                >
+                  <Zap className="mr-1 h-3 w-3" />
+                  The New Standard for Developer Assessment
+                </Badge>
+              </div>
+
+              <h1
+                className="text-balance text-4xl font-bold tracking-tight text-[#F0F0FF] md:text-6xl animate-fade-up"
+                style={{ animationDelay: '80ms' }}
               >
-                <Zap className="mr-1 h-3 w-3" />
-                The New Standard for Developer Assessment
-              </Badge>
-            </div>
+                Quantify your readiness for the{' '}
+                <span className="gradient-text-violet-cyan">
+                  Engineering Market.
+                </span>
+              </h1>
 
-            <h1
-              className="text-balance text-4xl font-bold tracking-tight text-[#F0F0FF] md:text-6xl animate-fade-up"
-              style={{ animationDelay: '80ms' }}
-            >
-              Quantify your readiness for the{' '}
-              <span className="gradient-text-violet-cyan">
-                Engineering Market.
-              </span>
-            </h1>
+              <p
+                className="mt-6 text-pretty text-lg text-[#8888AA] md:text-xl animate-fade-up"
+                style={{ animationDelay: '160ms' }}
+              >
+                NexusMG audits your code, communication, and professional credentials to provide a data-driven benchmark of your employability. Stop guessing why you aren’t getting interviews.
+              </p>
 
-            <p
-              className="mt-6 text-pretty text-lg text-[#8888AA] md:text-xl animate-fade-up"
-              style={{ animationDelay: '160ms' }}
-            >
-              NexusMG audits your code, communication, and professional credentials to provide a data-driven benchmark of your employability. Stop guessing why you aren’t getting interviews.
-            </p>
-
-            <div
-              className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row animate-fade-up"
-              style={{ animationDelay: '240ms' }}
-            >
-              <Link to="/register">
-                <Button size="lg" className="gap-2 min-w-[200px]">
-                  Get Your Readiness Score
-                  <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
-                </Button>
-              </Link>
-              <Link to="/samples">
-                <Button size="lg" variant="outline" className="min-w-[160px]">
-                  View Sample Audit
-                </Button>
-              </Link>
+              <div
+                className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row animate-fade-up"
+                style={{ animationDelay: '240ms' }}
+              >
+                <Link to="/register">
+                  <Button size="lg" className="gap-2 min-w-[200px]">
+                    Get Your Readiness Score
+                    <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+                  </Button>
+                </Link>
+                <Link to="/samples">
+                  <Button size="lg" variant="outline" className="min-w-[160px]">
+                    View Sample Audit
+                  </Button>
+                </Link>
+              </div>
             </div>
           </div>
-        </div>
+        </ScrollReveal>
 
         <div className="absolute inset-0 -z-10 overflow-hidden">
           <div
@@ -134,16 +140,18 @@ export function LandingPage() {
          ══════════════════════════════════════ */}
       <section className="py-20 bg-[#0A0A0F]/50">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center animate-fade-up">
-            <h2 className="text-3xl font-bold tracking-tight text-[#F0F0FF] md:text-4xl">
-              The "Black Hole" of Junior Applications.
-            </h2>
-            <p className="mt-4 text-[#8888AA]">
-              Applying shouldn't be a shot in the dark. Most developers fail because of invisible red flags.
-            </p>
-          </div>
+          <ScrollReveal>
+            <div className="mx-auto max-w-2xl text-center animate-fade-up">
+              <h2 className="text-3xl font-bold tracking-tight text-[#F0F0FF] md:text-4xl">
+                The "Black Hole" of Junior Applications.
+              </h2>
+              <p className="mt-4 text-[#8888AA]">
+                Applying shouldn't be a shot in the dark. Most developers fail because of invisible red flags.
+              </p>
+            </div>
+          </ScrollReveal>
 
-          <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4 stagger-children">
+          <ScrollReveal className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4 stagger-children">
             {[
               { title: 'Invisible CV Red Flags', desc: 'ATS systems rejecting you for formatting, not skill.', icon: AlertCircle },
               { title: 'Low-Signal GitHubs', desc: 'Repos filled with tutorials that recruiters ignore.', icon: Github },
@@ -156,7 +164,7 @@ export function LandingPage() {
                 <p className="text-sm text-[#8888AA]">{item.desc}</p>
               </div>
             ))}
-          </div>
+          </ScrollReveal>
         </div>
       </section>
 
@@ -164,7 +172,7 @@ export function LandingPage() {
           3. SOLUTION (HOW IT WORKS)
          ══════════════════════════════════════ */}
       <section className="py-20 md:py-32 border-y border-[#1E1E2E]">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
+        <ScrollReveal className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold tracking-tight text-[#F0F0FF] md:text-4xl mb-16 animate-fade-up">
             The NexusMG Evaluation Pipeline
           </h2>
@@ -182,14 +190,14 @@ export function LandingPage() {
               </div>
             ))}
           </div>
-        </div>
+        </ScrollReveal>
       </section>
 
       {/* ══════════════════════════════════════
           4. REAL OUTPUT DEMO (MANDATORY)
          ══════════════════════════════════════ */}
       <section className="py-20 md:py-32">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <ScrollReveal className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="animate-fade-up">
               <h2 className="text-3xl font-bold text-[#F0F0FF] mb-6">Actionable Insights, Not Generic Badges.</h2>
@@ -237,7 +245,7 @@ export function LandingPage() {
                </CardContent>
             </Card>
           </div>
-        </div>
+        </ScrollReveal>
       </section>
 
       {/* ══════════════════════════════════════
@@ -245,10 +253,10 @@ export function LandingPage() {
          ══════════════════════════════════════ */}
       <section className="py-20 md:py-32 bg-[#111118]/50 border-y border-[#1E1E2E]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16 animate-fade-up">
-             <h2 className="text-3xl font-bold text-[#F0F0FF]">Unrivaled Evaluation Depth</h2>
-          </div>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 stagger-children">
+          <ScrollReveal className="text-center mb-16">
+             <h2 className="text-3xl font-bold text-[#F0F0FF] animate-fade-up">Unrivaled Evaluation Depth</h2>
+          </ScrollReveal>
+          <ScrollReveal className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 stagger-children">
             {features.map((feature, i) => (
               <Card key={i} className="group border-[#1E1E2E] hover:border-[#6C63FF40] bg-[#0A0A0F] card-hover-lift">
                 <CardHeader>
@@ -272,7 +280,7 @@ export function LandingPage() {
                 </CardContent>
               </Card>
             ))}
-          </div>
+          </ScrollReveal>
         </div>
       </section>
 
@@ -280,7 +288,7 @@ export function LandingPage() {
           6. READINESS SCORE SYSTEM
          ══════════════════════════════════════ */}
       <section className="py-20 md:py-32">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <ScrollReveal className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
            <div className="grid lg:grid-cols-2 gap-16 items-center">
               <div className="order-2 lg:order-1 relative animate-fade-up">
                  <div className="absolute -inset-4 bg-[#00D4FF] opacity-[0.05] blur-3xl rounded-full" />
@@ -337,14 +345,14 @@ export function LandingPage() {
                 </div>
               </div>
            </div>
-        </div>
+        </ScrollReveal>
       </section>
 
       {/* ══════════════════════════════════════
           7. BEFORE vs AFTER
          ══════════════════════════════════════ */}
       <section className="py-20 md:py-32 bg-[#0A0A0F]/50 border-t border-[#1E1E2E]">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <ScrollReveal className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
            <div className="text-center mb-16 animate-fade-up">
               <h2 className="text-3xl font-bold text-[#F0F0FF]">The Transformation Journey</h2>
            </div>
@@ -360,14 +368,14 @@ export function LandingPage() {
                  <p className="text-[#8888AA] italic">"The audit showed my CV wasn't ATS-friendly and my GitHub had security leaks. I fixed those 4 specific points and landed 3 interviews in two weeks."</p>
               </div>
            </div>
-        </div>
+        </ScrollReveal>
       </section>
 
       {/* ══════════════════════════════════════
           8. FOR WHO & 9. TRUST
          ══════════════════════════════════════ */}
       <section className="py-20 md:py-32">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <ScrollReveal className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
            <div className="grid lg:grid-cols-2 gap-16">
               <div className="animate-fade-up">
                  <h2 className="text-3xl font-bold text-[#F0F0FF] mb-6">Built for the Modern Workforce.</h2>
@@ -408,18 +416,110 @@ export function LandingPage() {
                  </div>
               </div>
            </div>
-        </div>
+        </ScrollReveal>
+      </section>
+
+      {/* ══════════════════════════════════════
+          TEAM SECTION
+         ══════════════════════════════════════ */}
+      <section className="py-20 border-t border-[#1E1E2E] bg-[#111118]/50">
+        <ScrollReveal className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12 animate-fade-up">
+            <Badge variant="secondary" className="mb-4 border-[#6C63FF30] bg-[#6C63FF15] text-[#6C63FF]">
+              <Users className="mr-1 h-3 w-3" />
+              The Team
+            </Badge>
+            <h2 className="text-3xl font-bold text-[#F0F0FF]">Built by Developers, for Developers.</h2>
+            <p className="mt-3 text-[#8888AA]">The minds behind NexusMG.</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto stagger-children">
+            {/* Mohammad */}
+            <div className="group p-6 rounded-2xl bg-[#0A0A0F] border border-[#1E1E2E] hover:border-[#6C63FF40] card-hover-lift">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="h-12 w-12 rounded-xl bg-[#6C63FF15] flex items-center justify-center text-[#6C63FF] font-bold text-lg border border-[#6C63FF30]">
+                  M
+                </div>
+                <div>
+                  <h3 className="font-bold text-[#F0F0FF] group-hover:text-[#6C63FF] transition-colors">Mohammad Abo Al Ghozlan</h3>
+                  <p className="text-xs text-[#7a7a99]">Co-Founder & Developer</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <a href="mailto:abo.al.ghozlan.mohammad@gmail.com"
+                  className="flex items-center gap-2 text-sm text-[#8888AA] hover:text-[#6C63FF] transition-colors duration-200"
+                >
+                  <Mail className="h-4 w-4 shrink-0" />
+                  abo.al.ghozlan.mohammad@gmail.com
+                </a>
+                <a href="tel:+96181985614"
+                  className="flex items-center gap-2 text-sm text-[#8888AA] hover:text-[#6C63FF] transition-colors duration-200"
+                >
+                  <Phone className="h-4 w-4 shrink-0" />
+                  +961 81 985 614
+                </a>
+                <a href="https://www.linkedin.com/in/mohammad-abo-al-ghozlan/" target="_blank" rel="noreferrer"
+                  className="flex items-center gap-2 text-sm text-[#8888AA] hover:text-[#6C63FF] transition-colors duration-200">
+                  <Linkedin className="h-4 w-4 shrink-0" />
+                  linkedin.com/in/mohammad-abo-al-ghozlan
+                </a>
+                <a href="https://mohammad-ghozlan.vercel.app/" target="_blank" rel="noreferrer"
+                  className="flex items-center gap-2 text-sm text-[#8888AA] hover:text-[#6C63FF] transition-colors duration-200">
+                  <Globe className="h-4 w-4 shrink-0" />
+                  mohammad-ghozlan.vercel.app
+                </a>
+              </div>
+            </div>
+
+            {/* Somaya */}
+            <div className="group p-6 rounded-2xl bg-[#0A0A0F] border border-[#1E1E2E] hover:border-[#6C63FF40] card-hover-lift">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="h-12 w-12 rounded-xl bg-[#6C63FF15] flex items-center justify-center text-[#6C63FF] font-bold text-lg border border-[#6C63FF30]">
+                  S
+                </div>
+                <div>
+                  <h3 className="font-bold text-[#F0F0FF] group-hover:text-[#6C63FF] transition-colors">Somaya Al Minawi</h3>
+                  <p className="text-xs text-[#7a7a99]">Co-Founder & Developer</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <a href="mailto:sumayaminawi@gmail.com"
+                  className="flex items-center gap-2 text-sm text-[#8888AA] hover:text-[#6C63FF] transition-colors duration-200"
+                >
+                  <Mail className="h-4 w-4 shrink-0" />
+                  sumayaminawi@gmail.com
+                </a>
+                <a href="tel:+96178979310"
+                  className="flex items-center gap-2 text-sm text-[#8888AA] hover:text-[#6C63FF] transition-colors duration-200"
+                >
+                  <Phone className="h-4 w-4 shrink-0" />
+                  +961 78 979 310
+                </a>
+                <a href="https://www.linkedin.com/in/sumaya-minawi/" target="_blank" rel="noreferrer"
+                  className="flex items-center gap-2 text-sm text-[#8888AA] hover:text-[#6C63FF] transition-colors duration-200">
+                  <Linkedin className="h-4 w-4 shrink-0" />
+                  linkedin.com/in/sumaya-minawi
+                </a>
+                <a href="https://sumaya-minawi.vercel.app/" target="_blank" rel="noreferrer"
+                  className="flex items-center gap-2 text-sm text-[#8888AA] hover:text-[#6C63FF] transition-colors duration-200">
+                  <Globe className="h-4 w-4 shrink-0" />
+                  sumaya-minawi.vercel.app
+                </a>
+              </div>
+            </div>
+          </div>
+        </ScrollReveal>
       </section>
 
       {/* ══════════════════════════════════════
           10. FINAL CTA
          ══════════════════════════════════════ */}
       <section className="relative border-t border-[#1E1E2E] py-20 overflow-hidden bg-[#6C63FF]/5">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10 text-center animate-fade-up">
-          <h2 className="text-balance text-4xl font-extrabold tracking-tight text-[#F0F0FF] md:text-5xl">
+        <ScrollReveal className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+          <h2 className="text-balance text-4xl font-extrabold tracking-tight text-[#F0F0FF] md:text-5xl animate-fade-up">
              Stop guessing your value.
           </h2>
-          <p className="mx-auto mt-6 max-w-xl text-[#8888AA] text-lg">
+          <p className="mx-auto mt-6 max-w-xl text-[#8888AA] text-lg animate-fade-up" style={{ animationDelay: '60ms' }}>
              Join thousands of developers quantifying their readiness and landing roles at top-tier companies.
           </p>
           <div
@@ -433,8 +533,8 @@ export function LandingPage() {
               </Button>
             </Link>
           </div>
-          <p className="mt-6 text-[#8888AA] text-sm">No credit card required. Benchmarking takes 2 minutes.</p>
-        </div>
+          <p className="mt-6 text-[#8888AA] text-sm animate-fade-up" style={{ animationDelay: '180ms' }}>No credit card required. Benchmarking takes 2 minutes.</p>
+        </ScrollReveal>
 
         <div className="absolute inset-0 -z-10">
           <div

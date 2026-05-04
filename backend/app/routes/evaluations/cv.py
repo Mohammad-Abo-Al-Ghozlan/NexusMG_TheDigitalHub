@@ -1,9 +1,10 @@
 """
 CV Evaluation Routes
 """
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
-from sqlalchemy.orm import Session
-from datetime import datetime
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status, Request
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from datetime import datetime, timezone
 import os
 import uuid
 from app.database import get_db
@@ -13,34 +14,34 @@ from app.models.readiness import ReadinessScore
 from app.schemas.evaluation import EvaluationResponse, CVAnalysisResponse
 from app.services.auth import get_current_user
 from app.services.ai import cv_parser, groq_service
+from app.services.readiness import calculate_overall_readiness
 from app.config import settings
+from app.rate_limiter import limiter
 
 router = APIRouter(prefix="/evaluations/cv", tags=["CV Evaluation"])
 
 
 @router.post("/upload", response_model=EvaluationResponse)
+@limiter.limit("5/minute")
 async def upload_cv(
+    request: Request,
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """Upload CV file for evaluation."""
     # Validate file type
-    allowed_types = [".pdf", ".docx", ".doc", ".txt"]
+    allowed_types = {
+        ".pdf": {"application/pdf"},
+        ".docx": {"application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
+        ".txt": {"text/plain"}
+    }
     ext = os.path.splitext(file.filename)[1].lower()
-    
-    if ext not in allowed_types:
+
+    if ext not in allowed_types or file.content_type not in allowed_types[ext]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File type not allowed. Allowed types: {', '.join(allowed_types)}"
-        )
-    
-    # Validate file size
-    content = await file.read()
-    if len(content) > settings.MAX_FILE_SIZE:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File too large. Maximum size: {settings.MAX_FILE_SIZE / 1024 / 1024}MB"
+            detail=f"File type not allowed. Allowed types: {', '.join(allowed_types.keys())}"
         )
     
     # Save file
@@ -49,9 +50,21 @@ async def upload_cv(
     
     file_name = f"{uuid.uuid4()}{ext}"
     file_path = os.path.join(upload_dir, file_name)
-    
-    with open(file_path, "wb") as f:
-        f.write(content)
+
+    size = 0
+    import aiofiles
+    async with aiofiles.open(file_path, "wb") as f:
+        while chunk := await file.read(1024 * 1024):
+            size += len(chunk)
+            if size > settings.MAX_FILE_SIZE:
+                await f.close() # Important: close before removing
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"File too large. Maximum size: {settings.MAX_FILE_SIZE / 1024 / 1024}MB"
+                )
+            await f.write(chunk)
     
     # Create evaluation record
     evaluation = Evaluation(
@@ -62,25 +75,30 @@ async def upload_cv(
     )
     
     db.add(evaluation)
-    db.commit()
-    db.refresh(evaluation)
+    await db.commit()
+    await db.refresh(evaluation)
     
     return evaluation
 
 
 @router.post("/{evaluation_id}/analyze", response_model=CVAnalysisResponse)
+@limiter.limit("10/minute")
 async def analyze_cv(
+    request: Request,
     evaluation_id: int,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """Analyze uploaded CV."""
     # Get evaluation
-    evaluation = db.query(Evaluation).filter(
-        Evaluation.id == evaluation_id,
-        Evaluation.user_id == current_user.id,
-        Evaluation.evaluation_type == EvaluationType.CV
-    ).first()
+    result = await db.execute(
+        select(Evaluation).where(
+            Evaluation.id == evaluation_id,
+            Evaluation.user_id == current_user.id,
+            Evaluation.evaluation_type == EvaluationType.CV
+        )
+    )
+    evaluation = result.scalar_one_or_none()
     
     if not evaluation:
         raise HTTPException(
@@ -100,19 +118,25 @@ async def analyze_cv(
     if not parsed_data.get("success"):
         evaluation.status = EvaluationStatus.FAILED
         evaluation.feedback = parsed_data.get("error", "Failed to parse CV")
-        db.commit()
+        await db.commit()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=parsed_data.get("error", "Failed to parse CV")
         )
     
     # AI Analysis
-    ai_analysis = await groq_service.analyze_cv(
-        cv_text=parsed_data.get("text", ""),
-        skills=parsed_data.get("skills", {}).get("all", []),
-        experience=parsed_data.get("experience", []),
-        education=parsed_data.get("education", [])
-    )
+    try:
+        ai_analysis = await groq_service.analyze_cv(
+            cv_text=parsed_data.get("text", ""),
+            skills=parsed_data.get("skills", {}).get("all", []),
+            experience=parsed_data.get("experience", []),
+            education=parsed_data.get("education", [])
+        )
+    except Exception as exc:
+        evaluation.status = EvaluationStatus.FAILED
+        evaluation.feedback = f"AI error: {exc}"
+        await db.commit()
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="AI analysis failed")
     
     # Calculate overall score
     overall_score = (
@@ -128,7 +152,7 @@ async def analyze_cv(
     evaluation.analysis = ai_analysis
     evaluation.feedback = ai_analysis.get("feedback", "")
     evaluation.recommendations = ai_analysis.get("recommendations", [])
-    evaluation.completed_at = datetime.utcnow()
+    evaluation.completed_at = datetime.now(timezone.utc)
     
     # Create CV-specific record
     cv_eval = CVEvaluation(
@@ -146,19 +170,18 @@ async def analyze_cv(
     db.add(cv_eval)
     
     # Update readiness score
-    readiness = db.query(ReadinessScore).filter(
-        ReadinessScore.user_id == current_user.id
-    ).first()
+    readiness_result = await db.execute(select(ReadinessScore).where(ReadinessScore.user_id == current_user.id))
+    readiness = readiness_result.scalar_one_or_none()
     
     if not readiness:
         readiness = ReadinessScore(user_id=current_user.id)
         db.add(readiness)
-    
+
     readiness.cv_score = overall_score
-    readiness.cv_completed = 1
-    readiness.overall_score = _calculate_overall_readiness(readiness)
-    
-    db.commit()
+    readiness.cv_completed = True
+    readiness.overall_score = calculate_overall_readiness(readiness)
+
+    await db.commit()
     
     return CVAnalysisResponse(
         format_score=ai_analysis.get("format_score", 0),
@@ -177,13 +200,16 @@ async def analyze_cv(
 @router.get("/latest", response_model=EvaluationResponse)
 async def get_latest_cv_evaluation(
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """Get the latest CV evaluation."""
-    evaluation = db.query(Evaluation).filter(
-        Evaluation.user_id == current_user.id,
-        Evaluation.evaluation_type == EvaluationType.CV
-    ).order_by(Evaluation.created_at.desc()).first()
+    result = await db.execute(
+        select(Evaluation).where(
+            Evaluation.user_id == current_user.id,
+            Evaluation.evaluation_type == EvaluationType.CV
+        ).order_by(Evaluation.created_at.desc())
+    )
+    evaluation = result.scalars().first()
     
     if not evaluation:
         raise HTTPException(
@@ -192,26 +218,3 @@ async def get_latest_cv_evaluation(
         )
     
     return evaluation
-
-
-def _calculate_overall_readiness(readiness: ReadinessScore) -> float:
-    """Calculate overall readiness score."""
-    scores = []
-    
-    if readiness.cv_completed:
-        scores.append(readiness.cv_score)
-    if readiness.github_completed:
-        scores.append(readiness.github_score)
-    if readiness.linkedin_completed:
-        scores.append(readiness.linkedin_score)
-    if readiness.idea_completed:
-        scores.append(readiness.idea_score)
-    if readiness.interview_completed:
-        scores.append(readiness.interview_score)
-    if readiness.english_completed:
-        scores.append(readiness.english_score)
-    
-    if not scores:
-        return 0.0
-    
-    return sum(scores) / len(scores)

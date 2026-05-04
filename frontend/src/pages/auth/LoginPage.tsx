@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Cpu, Eye, EyeOff } from 'lucide-react'
 import logo from '../../assets/logo.png'
+import { ScrollReveal } from '@/components/ui/ScrollReveal'
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -45,7 +46,7 @@ export function LoginPage() {
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
-      <div className="relative w-full max-w-md animate-fade-up">
+      <ScrollReveal once={true} threshold={0} className="relative w-full max-w-md animate-fade-up">
         <Card className="glass-strong border-[#1E1E2E] shadow-[0_0_60px_rgba(108,99,255,0.08)]">
           <CardHeader className="text-center">
             {/* Logo with breathe glow */}
@@ -132,7 +133,7 @@ export function LoginPage() {
           className="absolute -inset-8 -z-10 rounded-3xl bg-[#6C63FF] opacity-[0.04] blur-3xl"
           style={{ animation: 'logoBreathe 5s ease-in-out infinite' }}
         />
-      </div>
+      </ScrollReveal>
     </div>
   )
 }

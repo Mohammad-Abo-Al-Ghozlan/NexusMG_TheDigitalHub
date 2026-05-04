@@ -15,7 +15,7 @@ class EvaluationResponse(EvaluationBase):
     score: Optional[float] = None
     analysis: Optional[Dict[str, Any]] = None
     feedback: Optional[str] = None
-    recommendations: Optional[List[str]] = None
+    recommendations: Optional[List[Any]] = None
     created_at: datetime
     completed_at: Optional[datetime] = None
     
@@ -145,20 +145,25 @@ class EnglishAnalysisResponse(BaseModel):
 
 
 # Readiness Score
+class ReadinessModules(BaseModel):
+    cv: float = 0.0
+    github: float = 0.0
+    linkedin: float = 0.0
+    idea: float = 0.0
+    interview: float = 0.0
+    english: float = 0.0
+
+
 class ReadinessScoreResponse(BaseModel):
-    overall_score: float
-    cv_score: float
-    github_score: float
-    linkedin_score: float
-    idea_score: float
-    interview_score: float
-    english_score: float
-    cv_completed: bool
-    github_completed: bool
-    linkedin_completed: bool
-    idea_completed: bool
-    interview_completed: bool
-    english_completed: bool
+    overall: float = 0.0
+    level: str = "beginner"
+    modules: ReadinessModules
+    cv_completed: bool = False
+    github_completed: bool = False
+    linkedin_completed: bool = False
+    idea_completed: bool = False
+    interview_completed: bool = False
+    english_completed: bool = False
     strengths: Optional[List[str]] = None
     weaknesses: Optional[List[str]] = None
     recommendations: Optional[List[str]] = None

@@ -1,9 +1,10 @@
 """
 English Assessment Routes
 """
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from datetime import datetime
+from fastapi import APIRouter, Depends, HTTPException, status, Request
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from datetime import datetime, timezone
 from typing import List, Dict, Any
 from app.database import get_db
 from app.models.user import User
@@ -14,18 +15,22 @@ from app.schemas.evaluation import (
 )
 from app.services.auth import get_current_user
 from app.services.ai import groq_service
+from app.services.readiness import calculate_overall_readiness
+from app.services.session_store import get_session, set_session, delete_session
+from app.rate_limiter import limiter
 
 router = APIRouter(prefix="/evaluations/english", tags=["English Assessment"])
 
-# Store active assessment sessions
-active_sessions = {}
+SESSION_TTL_SECONDS = 3600
 
 
 @router.post("/start", response_model=List[Dict[str, Any]])
+@limiter.limit("5/minute")
 async def start_assessment(
+    request: Request,
     data: EnglishStart,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """Start a new English assessment session."""
     # Create evaluation record
@@ -37,8 +42,8 @@ async def start_assessment(
     )
     
     db.add(evaluation)
-    db.commit()
-    db.refresh(evaluation)
+    await db.commit()
+    await db.refresh(evaluation)
     
     # Generate questions
     questions = await groq_service.generate_english_questions(
@@ -46,13 +51,17 @@ async def start_assessment(
         count=10
     )
     
-    # Store session
-    active_sessions[f"{current_user.id}_{evaluation.id}"] = {
-        "evaluation_id": evaluation.id,
-        "questions": questions,
-        "answers": [],
-        "assessment_type": data.assessment_type
-    }
+    session_key = f"english:{current_user.id}:{evaluation.id}"
+    await set_session(
+        session_key,
+        {
+            "evaluation_id": evaluation.id,
+            "questions": questions,
+            "answers": [],
+            "assessment_type": data.assessment_type
+        },
+        SESSION_TTL_SECONDS
+    )
     
     # Create english record
     english_eval = EnglishEvaluation(
@@ -63,7 +72,7 @@ async def start_assessment(
     )
     
     db.add(english_eval)
-    db.commit()
+    await db.commit()
     
     # Return questions without correct answers
     return [
@@ -83,31 +92,31 @@ async def submit_answer(
     evaluation_id: int,
     answer: EnglishAnswer,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """Submit an answer for an English assessment question."""
-    session_key = f"{current_user.id}_{evaluation_id}"
-    
-    if session_key not in active_sessions:
+    session_key = f"english:{current_user.id}:{evaluation_id}"
+    session = await get_session(session_key)
+
+    if not session:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Assessment session not found"
         )
-    
-    session = active_sessions[session_key]
     session["answers"].append({
         "question_id": answer.question_id,
         "answer": answer.answer
     })
+
+    await set_session(session_key, session, SESSION_TTL_SECONDS)
     
     # Update database
-    english_eval = db.query(EnglishEvaluation).filter(
-        EnglishEvaluation.evaluation_id == evaluation_id
-    ).first()
+    result = await db.execute(select(EnglishEvaluation).where(EnglishEvaluation.evaluation_id == evaluation_id))
+    english_eval = result.scalar_one_or_none()
     
     if english_eval:
         english_eval.answers = session["answers"]
-        db.commit()
+        await db.commit()
     
     return {"status": "answer recorded", "answers_count": len(session["answers"])}
 
@@ -116,18 +125,17 @@ async def submit_answer(
 async def complete_assessment(
     evaluation_id: int,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """Complete English assessment and get analysis."""
-    session_key = f"{current_user.id}_{evaluation_id}"
-    
-    if session_key not in active_sessions:
+    session_key = f"english:{current_user.id}:{evaluation_id}"
+    session = await get_session(session_key)
+
+    if not session:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Assessment session not found"
         )
-    
-    session = active_sessions[session_key]
     
     # Prepare questions with answers for analysis
     questions_with_answers = []
@@ -142,7 +150,21 @@ async def complete_assessment(
         })
     
     # AI Analysis
-    ai_analysis = await groq_service.analyze_english_answers(questions_with_answers)
+    try:
+        ai_analysis = await groq_service.analyze_english_answers(questions_with_answers)
+    except Exception as exc:
+        result = await db.execute(
+            select(Evaluation).where(
+                Evaluation.id == evaluation_id,
+                Evaluation.user_id == current_user.id
+            )
+        )
+        evaluation = result.scalar_one_or_none()
+        if evaluation:
+            evaluation.status = EvaluationStatus.FAILED
+            evaluation.feedback = f"AI error: {exc}"
+            await db.commit()
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="AI analysis failed")
     
     # Calculate overall score
     overall_score = (
@@ -153,10 +175,13 @@ async def complete_assessment(
     )
     
     # Update evaluation
-    evaluation = db.query(Evaluation).filter(
-        Evaluation.id == evaluation_id,
-        Evaluation.user_id == current_user.id
-    ).first()
+    evaluation_result = await db.execute(
+        select(Evaluation).where(
+            Evaluation.id == evaluation_id,
+            Evaluation.user_id == current_user.id
+        )
+    )
+    evaluation = evaluation_result.scalar_one_or_none()
     
     if evaluation:
         evaluation.status = EvaluationStatus.COMPLETED
@@ -164,12 +189,11 @@ async def complete_assessment(
         evaluation.analysis = ai_analysis
         evaluation.feedback = ai_analysis.get("feedback", "")
         evaluation.recommendations = ai_analysis.get("recommendations", [])
-        evaluation.completed_at = datetime.utcnow()
+        evaluation.completed_at = datetime.now(timezone.utc)
     
     # Update english record
-    english_eval = db.query(EnglishEvaluation).filter(
-        EnglishEvaluation.evaluation_id == evaluation_id
-    ).first()
+    english_result = await db.execute(select(EnglishEvaluation).where(EnglishEvaluation.evaluation_id == evaluation_id))
+    english_eval = english_result.scalar_one_or_none()
     
     if english_eval:
         english_eval.grammar_score = ai_analysis.get("grammar_score", 0)
@@ -178,22 +202,20 @@ async def complete_assessment(
         english_eval.comprehension_score = ai_analysis.get("comprehension_score", 0)
     
     # Update readiness score
-    readiness = db.query(ReadinessScore).filter(
-        ReadinessScore.user_id == current_user.id
-    ).first()
+    readiness_result = await db.execute(select(ReadinessScore).where(ReadinessScore.user_id == current_user.id))
+    readiness = readiness_result.scalar_one_or_none()
     
     if not readiness:
         readiness = ReadinessScore(user_id=current_user.id)
         db.add(readiness)
-    
+
     readiness.english_score = overall_score
-    readiness.english_completed = 1
-    readiness.overall_score = _calculate_overall_readiness(readiness)
-    
-    db.commit()
-    
-    # Clean up session
-    del active_sessions[session_key]
+    readiness.english_completed = True
+    readiness.overall_score = calculate_overall_readiness(readiness)
+
+    await db.commit()
+
+    await delete_session(session_key)
     
     return EnglishAnalysisResponse(
         grammar_score=ai_analysis.get("grammar_score", 0),
@@ -210,13 +232,16 @@ async def complete_assessment(
 @router.get("/latest", response_model=EvaluationResponse)
 async def get_latest_english_evaluation(
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """Get the latest English evaluation."""
-    evaluation = db.query(Evaluation).filter(
-        Evaluation.user_id == current_user.id,
-        Evaluation.evaluation_type == EvaluationType.ENGLISH
-    ).order_by(Evaluation.created_at.desc()).first()
+    result = await db.execute(
+        select(Evaluation).where(
+            Evaluation.user_id == current_user.id,
+            Evaluation.evaluation_type == EvaluationType.ENGLISH
+        ).order_by(Evaluation.created_at.desc())
+    )
+    evaluation = result.scalars().first()
     
     if not evaluation:
         raise HTTPException(
@@ -225,26 +250,3 @@ async def get_latest_english_evaluation(
         )
     
     return evaluation
-
-
-def _calculate_overall_readiness(readiness: ReadinessScore) -> float:
-    """Calculate overall readiness score."""
-    scores = []
-    
-    if readiness.cv_completed:
-        scores.append(readiness.cv_score)
-    if readiness.github_completed:
-        scores.append(readiness.github_score)
-    if readiness.linkedin_completed:
-        scores.append(readiness.linkedin_score)
-    if readiness.idea_completed:
-        scores.append(readiness.idea_score)
-    if readiness.interview_completed:
-        scores.append(readiness.interview_score)
-    if readiness.english_completed:
-        scores.append(readiness.english_score)
-    
-    if not scores:
-        return 0.0
-    
-    return sum(scores) / len(scores)

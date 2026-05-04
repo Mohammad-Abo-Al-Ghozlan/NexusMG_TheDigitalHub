@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useEvaluationStore } from '@/stores/evaluationStore'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Textarea } from '@/components/ui/textarea'
 import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { toast } from 'sonner'
@@ -11,43 +10,73 @@ import {
   Upload,
   FileText,
   CheckCircle2,
-  XCircle,
   AlertCircle,
-  Loader2,
   Eye,
+  X,
+  File as FileIcon,
 } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 
+const ACCEPTED = ['.pdf', '.docx', '.doc', '.txt']
+const MAX_MB = 5
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
 export function CVEvaluationPage() {
-  const [cvText, setCvText] = useState('')
+  const [file, setFile] = useState<File | null>(null)
   const [isDragging, setIsDragging] = useState(false)
-  const {
-    cvResults,
-    cvLoading,
-    submitCV,
-    fetchCVResults,
-  } = useEvaluationStore()
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const { cvResults, cvLoading, submitCV, fetchCVResults } = useEvaluationStore()
 
   useEffect(() => {
     fetchCVResults()
   }, [fetchCVResults])
 
-  const handleSubmit = async () => {
-    if (!cvText.trim()) {
-      toast.error('Please enter your CV content')
-      return
+  const validate = (f: File): boolean => {
+    const ext = '.' + f.name.split('.').pop()?.toLowerCase()
+    if (!ACCEPTED.includes(ext)) {
+      toast.error(`Unsupported file type. Accepted: ${ACCEPTED.join(', ')}`)
+      return false
     }
+    if (f.size > MAX_MB * 1024 * 1024) {
+      toast.error(`File too large. Maximum size is ${MAX_MB} MB.`)
+      return false
+    }
+    return true
+  }
+
+  const pickFile = (f: File) => {
+    if (validate(f)) setFile(f)
+  }
+
+  const onDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+    const dropped = e.dataTransfer.files[0]
+    if (dropped) pickFile(dropped)
+  }, [])
+
+  const onDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true) }
+  const onDragLeave = () => setIsDragging(false)
+
+  const handleSubmit = async () => {
+    if (!file) { toast.error('Please select a CV file first'); return }
     try {
-      await submitCV(cvText)
+      await submitCV(file)
       toast.success('CV submitted for evaluation!')
-      setCvText('')
+      setFile(null)
     } catch {
-      toast.error('Failed to submit CV')
+      toast.error('Failed to submit CV. Please try again.')
     }
   }
 
   const latestResult = cvResults[0]
-  const details = latestResult?.details as unknown as {
+  const details = latestResult?.details as {
     strengths: string[]
     improvements: string[]
     ats_score: number
@@ -58,52 +87,104 @@ export function CVEvaluationPage() {
   return (
     <div className="space-y-6 animate-fade-up">
       {/* Header */}
-      <div className="animate-fade-up" style={{ animationDelay: '0ms' }}>
+      <div>
         <h1 className="text-2xl font-bold text-[#F0F0FF]">CV Evaluation</h1>
-        <p className="text-[#8888AA]">Get AI-powered feedback on your resume</p>
+        <p className="text-[#8888AA]">Upload your resume for AI-powered feedback</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Submit Form */}
+        {/* Upload Card */}
         <Card className="animate-fade-up" style={{ animationDelay: '60ms' }}>
           <div className="h-0.5 w-full bg-gradient-to-r from-[#6C63FF] to-[#00D4FF] rounded-t-xl" />
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-[#6C63FF]" />
-              Submit Your CV
+              Upload Your CV
             </CardTitle>
-            <CardDescription>Paste your CV content below for AI evaluation</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Hidden file input */}
+            <input
+              ref={inputRef}
+              type="file"
+              accept={ACCEPTED.join(',')}
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) pickFile(f); e.target.value = '' }}
+            />
+
+            {/* Drop zone */}
             <div
-              className={`relative rounded-xl border-2 border-dashed p-1 transition-all duration-200 ${
-                isDragging
-                  ? 'border-[#6C63FF] bg-[#6C63FF0D] shadow-[0_0_20px_rgba(108,99,255,0.15)]'
-                  : 'border-[#1E1E2E] hover:border-[#2A2A3E]'
-              }`}
-              onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={(e) => {
-                e.preventDefault()
-                setIsDragging(false)
-                const text = e.dataTransfer.getData('text')
-                if (text) setCvText(text)
-              }}
+              onClick={() => inputRef.current?.click()}
+              onDrop={onDrop}
+              onDragOver={onDragOver}
+              onDragLeave={onDragLeave}
+              className={`
+                relative flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed
+                cursor-pointer select-none transition-all duration-300 min-h-[260px] px-6 py-10
+                ${isDragging
+                  ? 'border-[#6C63FF] bg-[#6C63FF0D] shadow-[0_0_40px_rgba(108,99,255,0.2)] scale-[1.01]'
+                  : file
+                    ? 'border-[#00C896] bg-[#00C89608]'
+                    : 'border-[#1E1E2E] bg-[#0A0A0F] hover:border-[#6C63FF60] hover:bg-[#6C63FF06]'
+                }
+              `}
             >
-              <Textarea
-                placeholder="Paste your CV text here..."
-                value={cvText}
-                onChange={(e) => setCvText(e.target.value)}
-                className="min-h-[300px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-[#F0F0FF] placeholder:text-[#44445A]"
-              />
+              {file ? (
+                /* Selected file preview */
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <div className="relative">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#00C89615] border border-[#00C89630]">
+                      <FileIcon className="h-8 w-8 text-[#00C896]" />
+                    </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setFile(null) }}
+                      className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-[#1E1E2E] border border-[#2A2A3E] text-[#8888AA] hover:text-[#FF4D6D] hover:border-[#FF4D6D40] transition-colors"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <div>
+                    <p className="font-medium text-[#F0F0FF] break-all max-w-[220px]">{file.name}</p>
+                    <p className="text-xs text-[#8888AA] mt-0.5">{formatBytes(file.size)}</p>
+                  </div>
+                  <Badge className="border-[#00C89640] bg-[#00C89610] text-[#00C896] border">
+                    <CheckCircle2 className="mr-1 h-3 w-3" />
+                    Ready to evaluate
+                  </Badge>
+                </div>
+              ) : (
+                /* Empty state */
+                <>
+                  <div className={`flex h-16 w-16 items-center justify-center rounded-2xl border transition-all duration-300 ${
+                    isDragging ? 'bg-[#6C63FF20] border-[#6C63FF50]' : 'bg-[#6C63FF10] border-[#6C63FF20]'
+                  }`}>
+                    <Upload className={`h-8 w-8 transition-transform duration-300 ${isDragging ? 'text-[#6C63FF] scale-110' : 'text-[#6C63FF]'}`} />
+                  </div>
+                  <div className="text-center">
+                    <p className="font-semibold text-[#F0F0FF]">
+                      {isDragging ? 'Drop your file here' : 'Drag & drop your CV'}
+                    </p>
+                    <p className="mt-1 text-sm text-[#8888AA]">
+                      or <span className="text-[#6C63FF] underline underline-offset-2">click to browse</span>
+                    </p>
+                    <p className="mt-3 text-xs text-[#44445A]">
+                      Supports PDF, DOCX, DOC, TXT · Max {MAX_MB} MB
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-[#44445A]">{cvText.length} characters</span>
-              <Button onClick={handleSubmit} loading={cvLoading} className="gap-2">
-                <Upload className="h-4 w-4" />
-                Evaluate CV
-              </Button>
-            </div>
+
+            {/* Submit button */}
+            <Button
+              onClick={handleSubmit}
+              disabled={!file || cvLoading}
+              loading={cvLoading}
+              className="w-full gap-2"
+            >
+              <Upload className="h-4 w-4" />
+              {cvLoading ? 'Analysing…' : 'Evaluate CV'}
+            </Button>
           </CardContent>
         </Card>
 
@@ -124,7 +205,7 @@ export function CVEvaluationPage() {
                 <div className="skeleton h-4 w-3/5" />
               </div>
             ) : latestResult ? (
-              <div className="space-y-5 feedback-stagger">
+              <div className="space-y-5">
                 <div className="flex items-center justify-between rounded-xl bg-[#0A0A0F] border border-[#1E1E2E] p-4">
                   <div>
                     <p className="text-sm text-[#8888AA]">Overall Score</p>
@@ -152,9 +233,7 @@ export function CVEvaluationPage() {
                     </p>
                     <ul className="space-y-1.5">
                       {details.strengths.map((s, i) => (
-                        <li key={i} className="rounded-lg px-3 py-2 text-sm feedback-strength">
-                          {s}
-                        </li>
+                        <li key={i} className="rounded-lg px-3 py-2 text-sm feedback-strength">{s}</li>
                       ))}
                     </ul>
                   </div>
@@ -167,9 +246,7 @@ export function CVEvaluationPage() {
                     </p>
                     <ul className="space-y-1.5">
                       {details.improvements.map((item, i) => (
-                        <li key={i} className="rounded-lg px-3 py-2 text-sm feedback-improvement">
-                          {item}
-                        </li>
+                        <li key={i} className="rounded-lg px-3 py-2 text-sm feedback-improvement">{item}</li>
                       ))}
                     </ul>
                   </div>
@@ -180,9 +257,7 @@ export function CVEvaluationPage() {
                     <p className="mb-2 text-sm font-medium text-[#F0F0FF]">Detected Keywords</p>
                     <div className="flex flex-wrap gap-2">
                       {details.keywords.map((kw, i) => (
-                        <Badge key={i} variant="outline" className="border-[#6C63FF30] text-[#6C63FF] bg-[#6C63FF08]">
-                          {kw}
-                        </Badge>
+                        <Badge key={i} variant="outline" className="border-[#6C63FF30] text-[#6C63FF] bg-[#6C63FF08]">{kw}</Badge>
                       ))}
                     </div>
                   </div>
@@ -196,7 +271,7 @@ export function CVEvaluationPage() {
                   <FileText className="h-8 w-8 text-[#44445A]" />
                 </div>
                 <p className="font-medium text-[#F0F0FF]">No evaluations yet</p>
-                <p className="mt-1 text-sm text-[#8888AA]">Submit your CV to get started</p>
+                <p className="mt-1 text-sm text-[#8888AA]">Upload your CV to get started</p>
               </div>
             )}
           </CardContent>
@@ -211,7 +286,7 @@ export function CVEvaluationPage() {
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-64">
-              <div className="space-y-3 table-stagger">
+              <div className="space-y-3">
                 {cvResults.map((result) => (
                   <div key={result.id} className="flex items-center justify-between rounded-xl border border-[#1E1E2E] bg-[#0A0A0F] p-4 transition-colors duration-150 hover:border-[#2A2A3E] hover:bg-[#16161F]">
                     <div className="flex items-center gap-3">

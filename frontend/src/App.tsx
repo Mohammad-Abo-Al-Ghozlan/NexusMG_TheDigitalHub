@@ -102,6 +102,7 @@ export default function App() {
           <Route path="trainees" element={<TraineesPage />} />
           <Route path="trainees/:id" element={<TraineeDetailPage />} />
           <Route path="analytics" element={<AnalyticsPage />} />
+          <Route path="profile" element={<ProfilePage />} />
         </Route>
 
         {/* Fallback */}

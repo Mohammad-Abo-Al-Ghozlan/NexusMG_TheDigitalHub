@@ -14,12 +14,13 @@ class GitHubService:
             "Accept": "application/vnd.github.v3+json",
             "User-Agent": "NexusMG-Platform"
         }
-        if settings.GITHUB_TOKEN:
-            self.headers["Authorization"] = f"token {settings.GITHUB_TOKEN}"
+        token = settings.GITHUB_TOKEN.get_secret_value()
+        if token:
+            self.headers["Authorization"] = f"token {token}"
     
     async def get_user_profile(self, username: str) -> Optional[Dict[str, Any]]:
         """Fetch user profile data."""
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=10.0) as client:
             try:
                 response = await client.get(
                     f"{self.BASE_URL}/users/{username}",
@@ -49,7 +50,7 @@ class GitHubService:
     
     async def get_user_repositories(self, username: str, limit: int = 30) -> List[Dict[str, Any]]:
         """Fetch user repositories."""
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=10.0) as client:
             try:
                 response = await client.get(
                     f"{self.BASE_URL}/users/{username}/repos",
@@ -76,7 +77,7 @@ class GitHubService:
                             "updated_at": repo.get("updated_at"),
                             "pushed_at": repo.get("pushed_at"),
                             "size": repo.get("size", 0),
-                            "has_readme": repo.get("has_wiki", False),
+                            "has_readme": None,
                             "license": repo.get("license", {}).get("name") if repo.get("license") else None,
                             "topics": repo.get("topics", []),
                             "url": repo.get("html_url")
@@ -87,22 +88,18 @@ class GitHubService:
                 print(f"GitHub API error: {e}")
             return []
     
-    async def get_user_languages(self, username: str) -> Dict[str, int]:
-        """Aggregate languages across all repositories."""
-        repos = await self.get_user_repositories(username)
-        languages = {}
-        
+    def _aggregate_languages(self, repos: List[Dict[str, Any]]) -> Dict[str, int]:
+        """Aggregate languages across repositories."""
+        languages: Dict[str, int] = {}
         for repo in repos:
             lang = repo.get("language")
             if lang:
                 languages[lang] = languages.get(lang, 0) + 1
-        
-        # Sort by count
         return dict(sorted(languages.items(), key=lambda x: x[1], reverse=True))
     
     async def get_contribution_stats(self, username: str) -> Dict[str, Any]:
         """Get contribution statistics (commits, PRs, issues)."""
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=10.0) as client:
             stats = {
                 "total_commits": 0,
                 "total_prs": 0,
@@ -152,7 +149,7 @@ class GitHubService:
             }
         
         repos = await self.get_user_repositories(username)
-        languages = await self.get_user_languages(username)
+        languages = self._aggregate_languages(repos)
         stats = await self.get_contribution_stats(username)
         
         # Calculate basic metrics

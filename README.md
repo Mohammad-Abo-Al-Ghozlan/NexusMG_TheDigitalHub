@@ -86,8 +86,8 @@ Most AI tools are simple "Chat with your PDF" wrappers. NexusMG is an **Evaluato
 ## 👥 Core Team
 NexusMG is architected and maintained by:
 
-*   **Mohammad Abo Al Ghozlan** — [GitHub](https://github.com/Mohammad-Abo-Al-Ghozlan) | [LinkedIn](https://linkedin.com/in/mohammad-abo-al-ghozlan)
-*   **Somaya Al Minawi** — [GitHub](https://github.com/somayaminawi) | [LinkedIn](https://linkedin.com/in/somayaminawi)
+* **Mohammad Abo Al Ghozlan** — [Email](mailto:abo.al.ghozlan.mohammad@gmail.com) | [LinkedIn](https://linkedin.com/in/mohammad-abo-al-ghozlan)  
+* **Somaya Al Minawi** — [Email](mailto:sumayaminawi@gmail.com) | [LinkedIn](https://linkedin.com/in/somayaminawi)
 
 ---
 

@@ -1,9 +1,10 @@
 """
 GitHub Evaluation Routes
 """
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from datetime import datetime
+from fastapi import APIRouter, Depends, HTTPException, status, Request
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from datetime import datetime, timezone
 from app.database import get_db
 from app.models.user import User
 from app.models.evaluation import Evaluation, EvaluationType, EvaluationStatus, GitHubEvaluation
@@ -11,15 +12,19 @@ from app.models.readiness import ReadinessScore
 from app.schemas.evaluation import EvaluationResponse, GitHubSubmit, GitHubAnalysisResponse
 from app.services.auth import get_current_user
 from app.services.ai import github_service, groq_service
+from app.services.readiness import calculate_overall_readiness
+from app.rate_limiter import limiter
 
 router = APIRouter(prefix="/evaluations/github", tags=["GitHub Evaluation"])
 
 
 @router.post("/analyze", response_model=GitHubAnalysisResponse)
+@limiter.limit("10/minute")
 async def analyze_github(
+    request: Request,
     data: GitHubSubmit,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """Analyze GitHub profile."""
     # Create evaluation record
@@ -31,8 +36,8 @@ async def analyze_github(
     )
     
     db.add(evaluation)
-    db.commit()
-    db.refresh(evaluation)
+    await db.commit()
+    await db.refresh(evaluation)
     
     # Fetch GitHub data
     github_data = await github_service.analyze_profile(data.username)
@@ -40,18 +45,24 @@ async def analyze_github(
     if github_data.get("error"):
         evaluation.status = EvaluationStatus.FAILED
         evaluation.feedback = github_data.get("error")
-        db.commit()
+        await db.commit()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=github_data.get("error")
         )
     
     # AI Analysis
-    ai_analysis = await groq_service.analyze_github(
-        profile=github_data.get("profile", {}),
-        repositories=github_data.get("repositories", []),
-        languages=github_data.get("languages", {})
-    )
+    try:
+        ai_analysis = await groq_service.analyze_github(
+            profile=github_data.get("profile", {}),
+            repositories=github_data.get("repositories", []),
+            languages=github_data.get("languages", {})
+        )
+    except Exception as exc:
+        evaluation.status = EvaluationStatus.FAILED
+        evaluation.feedback = f"AI error: {exc}"
+        await db.commit()
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="AI analysis failed")
     
     # Calculate overall score
     overall_score = (
@@ -67,7 +78,7 @@ async def analyze_github(
     evaluation.analysis = ai_analysis
     evaluation.feedback = ai_analysis.get("feedback", "")
     evaluation.recommendations = ai_analysis.get("recommendations", [])
-    evaluation.completed_at = datetime.utcnow()
+    evaluation.completed_at = datetime.now(timezone.utc)
     
     # Create GitHub-specific record
     github_eval = GitHubEvaluation(
@@ -87,19 +98,18 @@ async def analyze_github(
     current_user.github_username = data.username
     
     # Update readiness score
-    readiness = db.query(ReadinessScore).filter(
-        ReadinessScore.user_id == current_user.id
-    ).first()
+    readiness_result = await db.execute(select(ReadinessScore).where(ReadinessScore.user_id == current_user.id))
+    readiness = readiness_result.scalar_one_or_none()
     
     if not readiness:
         readiness = ReadinessScore(user_id=current_user.id)
         db.add(readiness)
-    
+
     readiness.github_score = overall_score
-    readiness.github_completed = 1
-    readiness.overall_score = _calculate_overall_readiness(readiness)
-    
-    db.commit()
+    readiness.github_completed = True
+    readiness.overall_score = calculate_overall_readiness(readiness)
+
+    await db.commit()
     
     return GitHubAnalysisResponse(
         activity_score=ai_analysis.get("activity_score", 0),
@@ -118,13 +128,16 @@ async def analyze_github(
 @router.get("/latest", response_model=EvaluationResponse)
 async def get_latest_github_evaluation(
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """Get the latest GitHub evaluation."""
-    evaluation = db.query(Evaluation).filter(
-        Evaluation.user_id == current_user.id,
-        Evaluation.evaluation_type == EvaluationType.GITHUB
-    ).order_by(Evaluation.created_at.desc()).first()
+    result = await db.execute(
+        select(Evaluation).where(
+            Evaluation.user_id == current_user.id,
+            Evaluation.evaluation_type == EvaluationType.GITHUB
+        ).order_by(Evaluation.created_at.desc())
+    )
+    evaluation = result.scalars().first()
     
     if not evaluation:
         raise HTTPException(
@@ -133,26 +146,3 @@ async def get_latest_github_evaluation(
         )
     
     return evaluation
-
-
-def _calculate_overall_readiness(readiness: ReadinessScore) -> float:
-    """Calculate overall readiness score."""
-    scores = []
-    
-    if readiness.cv_completed:
-        scores.append(readiness.cv_score)
-    if readiness.github_completed:
-        scores.append(readiness.github_score)
-    if readiness.linkedin_completed:
-        scores.append(readiness.linkedin_score)
-    if readiness.idea_completed:
-        scores.append(readiness.idea_score)
-    if readiness.interview_completed:
-        scores.append(readiness.interview_score)
-    if readiness.english_completed:
-        scores.append(readiness.english_score)
-    
-    if not scores:
-        return 0.0
-    
-    return sum(scores) / len(scores)

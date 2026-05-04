@@ -97,7 +97,7 @@ export function InstructorDashboard() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-fade-up">
       {/* Welcome Section */}
       <div className="flex items-center justify-between">
         <div>

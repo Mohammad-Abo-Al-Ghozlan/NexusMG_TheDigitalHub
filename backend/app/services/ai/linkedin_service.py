@@ -10,14 +10,14 @@ class LinkedInService:
     PROXYCURL_API_URL = "https://nubela.co/proxycurl/api/v2/linkedin"
     
     def __init__(self):
-        self.api_key = settings.LinkdAPI_API_KEY
+        self.api_key = settings.PROXYCURL_API_KEY.get_secret_value() or settings.LinkdAPI_API_KEY.get_secret_value()
     
     async def fetch_profile(self, linkedin_url: str) -> Optional[Dict[str, Any]]:
         """Fetch LinkedIn profile via Proxycurl API."""
         if not self.api_key:
             return None
         
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             try:
                 response = await client.get(
                     self.PROXYCURL_API_URL,

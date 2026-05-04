@@ -40,7 +40,7 @@ class User(Base):
     readiness_scores = relationship("ReadinessScore", back_populates="user")
     
     # Instructor relationship
-    instructor_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    instructor_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     instructor = relationship("User", remote_side=[id], backref="trainees")
 
 

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Enum, DateTime, Float, ForeignKey, Text, JSON
+from sqlalchemy import Column, Integer, String, Enum, DateTime, Float, ForeignKey, Text, JSON, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -23,9 +23,13 @@ class EvaluationStatus(str, enum.Enum):
 
 class Evaluation(Base):
     __tablename__ = "evaluations"
+    __table_args__ = (
+        Index("ix_evaluations_user_type_status", "user_id", "evaluation_type", "status"),
+        Index("ix_evaluations_user_type_created", "user_id", "evaluation_type", "created_at"),
+    )
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     evaluation_type = Column(Enum(EvaluationType), nullable=False)
     status = Column(Enum(EvaluationStatus), default=EvaluationStatus.PENDING)
     
@@ -57,7 +61,7 @@ class CVEvaluation(Base):
     __tablename__ = "cv_evaluations"
     
     id = Column(Integer, primary_key=True, index=True)
-    evaluation_id = Column(Integer, ForeignKey("evaluations.id"), nullable=False)
+    evaluation_id = Column(Integer, ForeignKey("evaluations.id", ondelete="CASCADE"), nullable=False, unique=True)
     
     # Parsed CV data
     extracted_text = Column(Text, nullable=True)
@@ -77,7 +81,7 @@ class GitHubEvaluation(Base):
     __tablename__ = "github_evaluations"
     
     id = Column(Integer, primary_key=True, index=True)
-    evaluation_id = Column(Integer, ForeignKey("evaluations.id"), nullable=False)
+    evaluation_id = Column(Integer, ForeignKey("evaluations.id", ondelete="CASCADE"), nullable=False, unique=True)
     
     # GitHub data
     username = Column(String(100), nullable=False)
@@ -95,7 +99,7 @@ class LinkedInEvaluation(Base):
     __tablename__ = "linkedin_evaluations"
     
     id = Column(Integer, primary_key=True, index=True)
-    evaluation_id = Column(Integer, ForeignKey("evaluations.id"), nullable=False)
+    evaluation_id = Column(Integer, ForeignKey("evaluations.id", ondelete="CASCADE"), nullable=False, unique=True)
     
     # LinkedIn data
     profile_url = Column(String(500), nullable=True)
@@ -112,7 +116,7 @@ class IdeaEvaluation(Base):
     __tablename__ = "idea_evaluations"
     
     id = Column(Integer, primary_key=True, index=True)
-    evaluation_id = Column(Integer, ForeignKey("evaluations.id"), nullable=False)
+    evaluation_id = Column(Integer, ForeignKey("evaluations.id", ondelete="CASCADE"), nullable=False, unique=True)
     
     # Idea details
     title = Column(String(255), nullable=False)
@@ -132,7 +136,7 @@ class InterviewEvaluation(Base):
     __tablename__ = "interview_evaluations"
     
     id = Column(Integer, primary_key=True, index=True)
-    evaluation_id = Column(Integer, ForeignKey("evaluations.id"), nullable=False)
+    evaluation_id = Column(Integer, ForeignKey("evaluations.id", ondelete="CASCADE"), nullable=False, unique=True)
     
     # Interview session data
     questions = Column(JSON, nullable=True)
@@ -150,7 +154,7 @@ class EnglishEvaluation(Base):
     __tablename__ = "english_evaluations"
     
     id = Column(Integer, primary_key=True, index=True)
-    evaluation_id = Column(Integer, ForeignKey("evaluations.id"), nullable=False)
+    evaluation_id = Column(Integer, ForeignKey("evaluations.id", ondelete="CASCADE"), nullable=False, unique=True)
     
     # Assessment data
     assessment_type = Column(String(50), nullable=True)  # grammar, vocabulary, writing, speaking

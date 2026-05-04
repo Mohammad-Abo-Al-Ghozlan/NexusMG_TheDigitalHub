@@ -4,35 +4,62 @@ Groq AI Service - LLM integration for all AI-powered evaluations
 from groq import Groq
 from typing import Dict, Any, List, Optional
 import json
+import logging
+import time
+import anyio
 from app.config import settings
+
+ai_logger = logging.getLogger("nexusmg.ai")
 
 
 class GroqService:
     def __init__(self):
-        self.client = Groq(api_key=settings.GROQ_API_KEY) if settings.GROQ_API_KEY else None
+        api_key = settings.GROQ_API_KEY.get_secret_value()
+        self.client = Groq(api_key=api_key) if api_key else None
         self.model = settings.GROQ_MODEL
+        self.allow_mock = settings.ALLOW_MOCK_AI
     
     async def analyze(self, prompt: str, system_prompt: str = None) -> str:
         """Send a prompt to Groq and get a response."""
+        start_time = time.perf_counter()
         if not self.client:
-            return self._mock_response(prompt)
+            if self.allow_mock:
+                response = self._mock_response(prompt)
+                duration_ms = (time.perf_counter() - start_time) * 1000.0
+                ai_logger.info("ai.groq.mock duration_ms=%.2f model=%s", duration_ms, self.model)
+                return response
+            raise RuntimeError("GROQ_API_KEY is not configured")
         
         messages = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
         
-        try:
-            response = self.client.chat.completions.create(
+        def _call_api():
+            return self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
                 temperature=0.7,
-                max_tokens=4096
+                max_tokens=2048,
+                timeout=30
             )
+
+        try:
+            response = await anyio.to_thread.run_sync(_call_api)
+            duration_ms = (time.perf_counter() - start_time) * 1000.0
+            ai_logger.info("ai.groq.success duration_ms=%.2f model=%s", duration_ms, self.model)
             return response.choices[0].message.content
         except Exception as e:
-            print(f"Groq API error: {e}")
-            return self._mock_response(prompt)
+            duration_ms = (time.perf_counter() - start_time) * 1000.0
+            ai_logger.warning(
+                "ai.groq.error duration_ms=%.2f model=%s error=%s",
+                duration_ms,
+                self.model,
+                str(e)
+            )
+            if self.allow_mock:
+                return self._mock_response(prompt)
+            raise RuntimeError(f"Groq API error: {e}") from e
     
     async def analyze_cv(self, cv_text: str, skills: List[str], experience: List[Dict], education: List[Dict]) -> Dict[str, Any]:
         """Analyze CV content and provide scores and feedback."""

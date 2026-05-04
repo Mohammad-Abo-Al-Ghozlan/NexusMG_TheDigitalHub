@@ -25,6 +25,11 @@ class UserUpdate(BaseModel):
     linkedin_url: Optional[str] = None
 
 
+class PasswordUpdate(BaseModel):
+    current_password: str
+    new_password: str
+
+
 class UserResponse(UserBase):
     id: int
     role: UserRole

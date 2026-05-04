@@ -69,7 +69,8 @@ class CVParserService:
             with open(file_path, "rb") as file:
                 reader = PyPDF2.PdfReader(file)
                 for page in reader.pages:
-                    text += page.extract_text() + "\n"
+                    page_text = page.extract_text() or ""
+                    text += page_text + "\n"
             return {"text": text.strip(), "pages": len(reader.pages)}
         except Exception as e:
             return {"error": str(e), "text": ""}
