@@ -113,6 +113,9 @@ export const instructorApi = {
   getTrainees: () => api.get('/instructor/trainees'),
   getTraineeDetails: (id: string) => api.get(`/instructor/trainees/${id}`),
   getAnalytics: () => api.get('/instructor/analytics'),
+  exportReport: (traineeId: string, format: 'pdf' | 'csv') =>
+    api.get(`/instructor/export/${traineeId}`, { params: { format }, responseType: 'blob' }),
+  inviteTrainee: (email: string) => api.post('/instructor/invite', { email }),
 }
 
 // Readiness Score API

@@ -90,16 +90,20 @@ export function TraineeDetailPage() {
     setIsExporting(true)
     try {
       const response = await instructorApi.exportReport(id!, format)
-      const blob = new Blob([response.data])
+      // response.data is already a Blob because of responseType: 'blob' in api.ts
+      const blob = response.data instanceof Blob ? response.data : new Blob([response.data])
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `${trainee?.full_name.replace(/\s+/g, '_')}_report.${format}`
+      a.download = `${trainee?.full_name?.replace(/\s+/g, '_') || 'trainee'}_report.${format}`
+      document.body.appendChild(a)
       a.click()
+      document.body.removeChild(a)
       window.URL.revokeObjectURL(url)
       toast.success(`Report exported as ${format.toUpperCase()}`)
-    } catch {
-      toast.error('Failed to export report')
+    } catch (error: any) {
+      console.error('Export failed:', error)
+      toast.error(error.response?.data?.detail || 'Failed to export report')
     } finally {
       setIsExporting(false)
     }

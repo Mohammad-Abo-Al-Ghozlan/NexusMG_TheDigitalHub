@@ -24,75 +24,83 @@ class LinkedInService:
         
         async with httpx.AsyncClient(timeout=30.0) as client:
             try:
+                print(f"Fetching LinkedIn profile from {url} for URL: {linkedin_url}")
                 response = await client.get(
                     url,
                     headers=headers,
                     params=params,
                     timeout=30.0
                 )
+                print(f"LinkedIn API response status: {response.status_code}")
                 
                 if response.status_code == 200:
                     data = response.json()
+                    print(f"LinkedIn API data received (keys): {list(data.keys())}")
                     # LinkdAPI might have a different structure, but we'll try to parse it
                     return self._parse_profile(data)
                 elif response.status_code == 404:
+                    print("LinkedIn profile not found (404)")
                     return {"error": "Profile not found"}
                 else:
+                    print(f"LinkedIn API error: {response.status_code} - {response.text}")
                     return {"error": f"API error: {response.status_code}"}
             except Exception as e:
-                print(f"LinkedIn API error: {e}")
+                print(f"LinkedIn API exception: {e}")
                 return {"error": str(e)}
     
     def _parse_profile(self, data: Dict) -> Dict[str, Any]:
-        """Parse Proxycurl response into standardized format."""
+        """Parse LinkedIn profile response into standardized format."""
+        # Handle LinkdAPI wrapper if present
+        person = data.get("person", data)
+        
         return {
-            "full_name": data.get("full_name"),
-            "headline": data.get("headline"),
-            "summary": data.get("summary"),
-            "location": data.get("city"),
-            "country": data.get("country_full_name"),
-            "industry": data.get("industry"),
-            "profile_pic_url": data.get("profile_pic_url"),
-            "public_identifier": data.get("public_identifier"),
-            "connections": data.get("connections"),
-            "follower_count": data.get("follower_count"),
+            "full_name": person.get("full_name") or person.get("name") or person.get("fullName"),
+            "headline": person.get("headline"),
+            "summary": person.get("summary") or person.get("about") or person.get("description"),
+            "location": person.get("city") or person.get("location"),
+            "country": person.get("country_full_name") or person.get("countryCode"),
+            "industry": person.get("industry"),
+            "profile_pic_url": person.get("profile_pic_url") or person.get("photoUrl") or person.get("avatarUrl"),
+            "public_identifier": person.get("public_identifier") or person.get("publicIdentifier") or person.get("id"),
+            "connections": person.get("connections") or person.get("connectionsCount") or 0,
+            "follower_count": person.get("follower_count") or person.get("followersCount") or 0,
             "experiences": [
                 {
                     "title": exp.get("title"),
-                    "company": exp.get("company"),
+                    "company": exp.get("company") or exp.get("companyName"),
                     "location": exp.get("location"),
-                    "starts_at": exp.get("starts_at"),
-                    "ends_at": exp.get("ends_at"),
+                    "starts_at": exp.get("starts_at") or exp.get("startDate"),
+                    "ends_at": exp.get("ends_at") or exp.get("endDate"),
                     "description": exp.get("description")
                 }
-                for exp in (data.get("experiences") or [])
+                for exp in (person.get("experiences") or person.get("positions") or [])
             ],
             "education": [
                 {
-                    "school": edu.get("school"),
-                    "degree_name": edu.get("degree_name"),
-                    "field_of_study": edu.get("field_of_study"),
-                    "starts_at": edu.get("starts_at"),
-                    "ends_at": edu.get("ends_at")
+                    "school": edu.get("school") or edu.get("schoolName"),
+                    "degree_name": edu.get("degree_name") or edu.get("degree"),
+                    "field_of_study": edu.get("field_of_study") or edu.get("field"),
+                    "starts_at": edu.get("starts_at") or edu.get("startDate"),
+                    "ends_at": edu.get("ends_at") or edu.get("endDate")
                 }
-                for edu in (data.get("education") or [])
+                for edu in (person.get("education") or person.get("educations") or [])
             ],
-            "skills": data.get("skills") or [],
+            "skills": person.get("skills") or [],
             "certifications": [
                 {
                     "name": cert.get("name"),
-                    "authority": cert.get("authority"),
-                    "starts_at": cert.get("starts_at")
+                    "authority": cert.get("authority") or cert.get("issuingOrganization"),
+                    "starts_at": cert.get("starts_at") or cert.get("issueDate")
                 }
-                for cert in (data.get("certifications") or [])
+                for cert in (person.get("certifications") or [])
             ],
-            "languages": data.get("languages") or [],
+            "languages": person.get("languages") or [],
             "accomplishments": {
-                "publications": len(data.get("accomplishment_publications") or []),
-                "patents": len(data.get("accomplishment_patents") or []),
-                "courses": len(data.get("accomplishment_courses") or []),
-                "projects": len(data.get("accomplishment_projects") or []),
-                "honors_awards": len(data.get("accomplishment_honors_awards") or [])
+                "publications": len(person.get("accomplishment_publications") or person.get("publications") or []),
+                "patents": len(person.get("accomplishment_patents") or person.get("patents") or []),
+                "courses": len(person.get("accomplishment_courses") or person.get("courses") or []),
+                "projects": len(person.get("accomplishment_projects") or person.get("projects") or []),
+                "honors_awards": len(person.get("accomplishment_honors_awards") or person.get("awards") or [])
             }
         }
     
