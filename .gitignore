@@ -64,6 +64,9 @@ pnpm-debug.log*
 logs/
 *.log
 
+# Runtime uploads
+backend/uploads/
+
 # Misc
 .vercel
 .turbo

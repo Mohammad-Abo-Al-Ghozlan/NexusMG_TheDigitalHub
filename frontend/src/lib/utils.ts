@@ -56,3 +56,22 @@ export function truncate(str: string, length: number): string {
   if (str.length <= length) return str
   return str.slice(0, length) + '...'
 }
+
+export function resolveApiAssetUrl(url?: string | null): string | undefined {
+  if (!url) return undefined
+  if (url.startsWith('data:')) return url
+  if (/^https?:\/\//i.test(url)) return url
+
+  const apiBase: string | undefined = import.meta.env.VITE_API_URL
+  if (apiBase && /^https?:\/\//i.test(apiBase)) {
+    try {
+      const origin = new URL(apiBase).origin
+      return `${origin}${url.startsWith('/') ? '' : '/'}${url}`
+    } catch {
+      // fall through
+    }
+  }
+
+  // If the dev server proxies /api, relative paths will still work.
+  return url
+}

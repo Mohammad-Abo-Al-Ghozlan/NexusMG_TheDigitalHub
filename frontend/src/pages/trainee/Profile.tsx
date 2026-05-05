@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -26,7 +26,7 @@ import {
   AlertTriangle,
   Upload,
 } from 'lucide-react'
-import { formatDate } from '@/lib/utils'
+import { formatDate, resolveApiAssetUrl } from '@/lib/utils'
 
 const profileSchema = z.object({
   full_name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -66,6 +66,17 @@ export function ProfilePage() {
       email: user?.email || '',
     },
   })
+
+  useEffect(() => {
+    if (!user) {
+      fetchUser()
+      return
+    }
+    profileForm.reset({
+      full_name: user.full_name ?? '',
+      email: user.email ?? '',
+    })
+  }, [user, fetchUser, profileForm])
 
   const passwordForm = useForm<PasswordForm>({
     resolver: zodResolver(passwordSchema),
@@ -175,7 +186,7 @@ export function ProfilePage() {
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) handleAvatarFile(f); e.target.value = '' }}
               />
               <Avatar className={`h-24 w-24 ring-2 transition-all duration-200 ${isDragging ? 'ring-[#6C63FF] ring-offset-2 ring-offset-[#0A0A0F]' : 'ring-[#6C63FF30]'}`}>
-                <AvatarImage src={avatarPreview || user?.avatar_url} />
+                <AvatarImage src={resolveApiAssetUrl(avatarPreview || user?.avatar_url)} />
                 <AvatarFallback className="text-2xl font-bold bg-[#6C63FF20] text-[#6C63FF]">
                   {initials}
                 </AvatarFallback>

@@ -22,6 +22,7 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     
     # Profile fields
+    avatar_url = Column(String(500), nullable=True)
     phone = Column(String(20), nullable=True)
     university = Column(String(255), nullable=True)
     major = Column(String(255), nullable=True)

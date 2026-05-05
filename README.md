@@ -76,6 +76,15 @@ Most AI tools are simple "Chat with your PDF" wrappers. NexusMG is an **Evaluato
    npm run dev
    ```
 
+### Root Workspace (npm workspaces)
+If you prefer running from the repo root:
+```bash
+npm install
+npm run dev        # frontend
+npm run dev:backend
+npm run dev:all
+```
+
 ## 🗺 Strategic Roadmap
 *   **Q3 2024:** Direct integration with Greenhouse/Lever ATS for recruiters.
 *   **Q4 2024:** "Portfolio-to-Code" generator based on architecture audit.

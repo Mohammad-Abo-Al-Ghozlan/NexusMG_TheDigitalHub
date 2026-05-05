@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { cn } from '@/lib/utils'
+import { cn, resolveApiAssetUrl } from '@/lib/utils'
 import logo from '../assets/logo.png'
 import {
   Cpu,
@@ -210,7 +210,7 @@ export function DashboardLayout() {
             <>
               <div className="flex items-center gap-3 rounded-xl bg-[#0A0A0F] border border-[#1E1E2E] p-3">
                 <Avatar className="h-9 w-9 ring-2 ring-[#6C63FF30] shrink-0">
-                  <AvatarImage src={user?.avatar_url} />
+                  <AvatarImage src={resolveApiAssetUrl(user?.avatar_url)} />
                   <AvatarFallback className="text-xs">
                     {user?.full_name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
                   </AvatarFallback>
@@ -235,7 +235,7 @@ export function DashboardLayout() {
           ) : (
             <div className="flex flex-col items-center gap-2">
               <Avatar className="h-9 w-9 ring-2 ring-[#6C63FF30]">
-                <AvatarImage src={user?.avatar_url} />
+                <AvatarImage src={resolveApiAssetUrl(user?.avatar_url)} />
                 <AvatarFallback className="text-xs">
                   {user?.full_name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
                 </AvatarFallback>

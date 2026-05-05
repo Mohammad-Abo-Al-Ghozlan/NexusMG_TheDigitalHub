@@ -10,7 +10,7 @@ from app.database import get_db
 from app.models.user import User, UserRole, InstructorInvite
 from app.schemas.user import (
     UserCreate, UserResponse, UserLogin, Token,
-    InstructorInviteCreate, InstructorInviteResponse
+    InstructorInviteCreate, InstructorInviteResponse, AuthResponse
 )
 from app.services.auth import (
     hash_password, create_access_token, authenticate_user,
@@ -21,7 +21,7 @@ from app.rate_limiter import limiter
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 @limiter.limit("3/minute")
 async def register(request: Request, user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     """Register a new user."""
@@ -71,11 +71,19 @@ async def register(request: Request, user_data: UserCreate, db: AsyncSession = D
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)
-    
-    return new_user
+
+    access_token = create_access_token(
+        data={
+            "sub": str(new_user.id),
+            "email": new_user.email,
+            "role": new_user.role.value,
+        }
+    )
+
+    return AuthResponse(access_token=access_token, user=new_user)
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=AuthResponse)
 @limiter.limit("5/minute")
 async def login(request: Request, credentials: UserLogin, db: AsyncSession = Depends(get_db)):
     """Login and get access token."""
@@ -95,8 +103,8 @@ async def login(request: Request, credentials: UserLogin, db: AsyncSession = Dep
             "role": user.role.value
         }
     )
-    
-    return Token(access_token=access_token)
+
+    return AuthResponse(access_token=access_token, user=user)
 
 
 @router.get("/me", response_model=UserResponse)

@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware'
 import { authApi } from '@/services/api'
 
 export interface User {
-  id: string
+  id: number
   email: string
   full_name: string
   role: 'trainee' | 'instructor' | 'admin'
@@ -29,9 +29,9 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       user: null,
-      token: null,
-      isAuthenticated: false,
-      isLoading: false,
+      token: typeof window !== 'undefined' ? localStorage.getItem('access_token') : null,
+      isAuthenticated: typeof window !== 'undefined' ? !!localStorage.getItem('access_token') : false,
+      isLoading: typeof window !== 'undefined' ? !!localStorage.getItem('access_token') : false,
       error: null,
 
       login: async (email: string, password: string) => {
@@ -80,10 +80,10 @@ export const useAuthStore = create<AuthState>()(
           return
         }
         
-        set({ isLoading: true })
+        set({ isLoading: true, token })
         try {
           const response = await authApi.me()
-          set({ user: response.data, isAuthenticated: true, isLoading: false })
+          set({ user: response.data, isAuthenticated: true, isLoading: false, token })
         } catch {
           set({ user: null, token: null, isAuthenticated: false, isLoading: false })
           localStorage.removeItem('access_token')

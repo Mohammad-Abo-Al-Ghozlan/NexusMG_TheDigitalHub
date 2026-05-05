@@ -16,6 +16,7 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
     full_name: Optional[str] = None
     phone: Optional[str] = None
     university: Optional[str] = None
@@ -34,6 +35,7 @@ class UserResponse(UserBase):
     id: int
     role: UserRole
     is_active: bool
+    avatar_url: Optional[str] = None
     phone: Optional[str] = None
     university: Optional[str] = None
     major: Optional[str] = None
@@ -55,6 +57,10 @@ class UserLogin(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+class AuthResponse(Token):
+    user: UserResponse
 
 
 class TokenData(BaseModel):

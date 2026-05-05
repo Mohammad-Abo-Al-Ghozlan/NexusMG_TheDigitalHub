@@ -34,6 +34,13 @@ async def update_profile(
 ):
     """Update current user profile."""
     update_dict = update_data.model_dump(exclude_unset=True)
+
+    # Email update needs uniqueness check
+    new_email = update_dict.get("email")
+    if new_email and new_email != current_user.email:
+        existing = await db.execute(select(User).where(User.email == new_email))
+        if existing.scalar_one_or_none() is not None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
     
     for field, value in update_dict.items():
         setattr(current_user, field, value)
