@@ -42,6 +42,37 @@ NexusMG operates as a centralized scoring engine:
     *   **Groq/Gemini:** Used for high-speed analysis of codebases and interview transcripts.
     *   **Proxycurl:** Real-time professional data retrieval from LinkedIn.
 
+## 📂 Project Structure
+```text
+NexusMG_TheDigitalHub/
+├── backend/                # FastAPI Application
+│   ├── app/
+│   │   ├── models/         # SQLAlchemy Models
+│   │   ├── routes/         # API Endpoints
+│   │   ├── schemas/        # Pydantic Schemas
+│   │   ├── services/       # Business Logic & AI Integrations
+│   │   └── main.py         # Entry Point
+│   ├── scripts/            # Maintenance & Testing Scripts
+│   ├── uploads/            # User Uploads (CVs, Avatars)
+│   └── requirements.txt
+├── frontend/               # React + Vite Application
+│   ├── src/
+│   │   ├── components/     # UI Components (Shadcn/UI)
+│   │   ├── layouts/        # Page Layouts
+│   │   ├── pages/          # Application Pages
+│   │   ├── services/       # API Integration (Axios)
+│   │   ├── stores/         # State Management (Zustand)
+│   │   └── App.tsx
+│   ├── public/             # Static Assets
+│   └── package.json
+├── components/             # Shared UI Components (Root level)
+├── docs/                   # Documentation
+│   └── api_routes.md       # API Endpoint Reference
+├── hooks/                  # Custom React Hooks
+├── lib/                    # Shared Utilities
+└── README.md
+```
+
 ## ⚖️ Why NexusMG? (Differentiation)
 Most AI tools are simple "Chat with your PDF" wrappers. NexusMG is an **Evaluator**.
 *   **Cross-Signal Validation:** It checks if your CV claims match your actual GitHub activity.
@@ -67,7 +98,7 @@ Most AI tools are simple "Chat with your PDF" wrappers. NexusMG is an **Evaluato
    python -m venv venv
    source venv/bin/activate # or venv\Scripts\activate on Windows
    pip install -r requirements.txt
-   uvicorn app.main:app --reload
+   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
    ```
 3. **Frontend Interface**
    ```bash

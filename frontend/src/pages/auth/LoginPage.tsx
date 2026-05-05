@@ -37,8 +37,14 @@ export function LoginPage() {
     try {
       clearError()
       await login(data.email, data.password)
+      const { user } = useAuthStore.getState()
       toast.success('Welcome back!')
-      navigate('/dashboard')
+      
+      if (user?.role === 'instructor' || user?.role === 'admin') {
+        navigate('/instructor')
+      } else {
+        navigate('/dashboard')
+      }
     } catch {
       toast.error(error || 'Login failed. Please try again.')
     }

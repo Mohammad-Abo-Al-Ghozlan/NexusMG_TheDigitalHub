@@ -48,6 +48,7 @@ export function InterviewPage() {
     currentInterview,
     startInterview,
     submitInterviewAnswer,
+    completeInterview,
     fetchInterviewResults,
   } = useEvaluationStore()
 
@@ -112,8 +113,12 @@ export function InterviewPage() {
       setTimeLeft(questions[currentQuestionIndex + 1].time_limit)
     } else {
       setIsInterviewActive(false)
-      toast.success('Interview completed! Check your results.')
-      fetchInterviewResults()
+      try {
+        await completeInterview(currentInterview!.id)
+        toast.success('Interview completed! Check your results.')
+      } catch {
+        toast.error('Failed to complete interview')
+      }
     }
   }
 

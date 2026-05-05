@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     
     # AI Services
     GROQ_API_KEY: SecretStr = SecretStr("")
-    GROQ_MODEL: str = "llama-3.1-70b-versatile"
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
     ALLOW_MOCK_AI: bool = False
     
     # External APIs

@@ -273,7 +273,7 @@ export function TraineesPage() {
                       <Avatar className="h-12 w-12">
                         <AvatarImage src={trainee.avatar_url} />
                         <AvatarFallback>
-                          {trainee.full_name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                          {trainee.full_name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'TR'}
                         </AvatarFallback>
                       </Avatar>
                       <div>

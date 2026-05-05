@@ -44,7 +44,12 @@ export function RegisterPage() {
       clearError()
       await registerUser({ email: data.email, password: data.password, full_name: data.full_name, role: data.role })
       toast.success('Account created successfully!')
-      navigate('/dashboard')
+      
+      if (data.role === 'instructor') {
+        navigate('/instructor')
+      } else {
+        navigate('/dashboard')
+      }
     } catch {
       toast.error(error || 'Registration failed. Please try again.')
     }

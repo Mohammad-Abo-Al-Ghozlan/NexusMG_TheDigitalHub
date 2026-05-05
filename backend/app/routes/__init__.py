@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.routes import auth, users, instructors, readiness
+from . import auth, users, instructors, readiness
 from app.routes.evaluations import router as evaluations_router
 
 router = APIRouter()

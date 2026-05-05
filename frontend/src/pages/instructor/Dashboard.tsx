@@ -253,7 +253,7 @@ export function InstructorDashboard() {
                     <Avatar>
                       <AvatarImage src={trainee.avatar_url} />
                       <AvatarFallback>
-                        {trainee.full_name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                        {(trainee.full_name || 'TR').split(' ').map(n => n[0]).join('').toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div>

@@ -39,6 +39,7 @@ export function EnglishAssessmentPage() {
     currentAssessment,
     startEnglish,
     submitEnglishAnswer,
+    completeEnglish,
     fetchEnglishResults,
   } = useEvaluationStore()
 
@@ -72,14 +73,18 @@ export function EnglishAssessmentPage() {
     }
 
     // Auto-advance after short delay
-    setTimeout(() => {
+    setTimeout(async () => {
       if (currentQuestionIndex < questions.length - 1) {
         setCurrentQuestionIndex(prev => prev + 1)
         setSelectedAnswer('')
       } else {
         setIsAssessmentActive(false)
-        toast.success('Assessment completed!')
-        fetchEnglishResults()
+        try {
+          await completeEnglish(currentAssessment!.id)
+          toast.success('Assessment completed!')
+        } catch {
+          toast.error('Failed to complete assessment')
+        }
       }
     }, 500)
   }

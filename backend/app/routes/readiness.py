@@ -25,7 +25,7 @@ def map_readiness_response(readiness: ReadinessScore) -> dict:
         level = "intermediate"
         
     return {
-        "overall": readiness.overall_score,
+        "overall": round(readiness.overall_score, 3),
         "level": level,
         "modules": {
             "cv": readiness.cv_score,

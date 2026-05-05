@@ -13,28 +13,34 @@ class LinkedInService:
         self.api_key = settings.PROXYCURL_API_KEY.get_secret_value() or settings.LinkdAPI_API_KEY.get_secret_value()
     
     async def fetch_profile(self, linkedin_url: str) -> Optional[Dict[str, Any]]:
-        """Fetch LinkedIn profile via Proxycurl API."""
+        """Fetch LinkedIn profile via Proxycurl or LinkdAPI."""
         if not self.api_key:
             return None
+        
+        is_linkdapi = self.api_key.startswith("li-")
+        url = "https://api.linkdapi.com/v1/linkedin/profile" if is_linkdapi else self.PROXYCURL_API_URL
+        headers = {"x-api-key": self.api_key} if is_linkdapi else {"Authorization": f"Bearer {self.api_key}"}
+        params = {"url": linkedin_url}
         
         async with httpx.AsyncClient(timeout=30.0) as client:
             try:
                 response = await client.get(
-                    self.PROXYCURL_API_URL,
-                    headers={"Authorization": f"Bearer {self.api_key}"},
-                    params={"url": linkedin_url},
+                    url,
+                    headers=headers,
+                    params=params,
                     timeout=30.0
                 )
                 
                 if response.status_code == 200:
                     data = response.json()
+                    # LinkdAPI might have a different structure, but we'll try to parse it
                     return self._parse_profile(data)
                 elif response.status_code == 404:
                     return {"error": "Profile not found"}
                 else:
                     return {"error": f"API error: {response.status_code}"}
             except Exception as e:
-                print(f"Proxycurl API error: {e}")
+                print(f"LinkedIn API error: {e}")
                 return {"error": str(e)}
     
     def _parse_profile(self, data: Dict) -> Dict[str, Any]:

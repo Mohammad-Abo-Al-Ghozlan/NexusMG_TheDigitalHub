@@ -62,7 +62,7 @@ async def analyze_linkedin(
     if not profile_data:
         evaluation.status = EvaluationStatus.FAILED
         evaluation.feedback = "Could not fetch LinkedIn profile. Please provide manual data."
-        db.commit()
+        await db.commit()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Could not fetch LinkedIn profile and no manual data provided"

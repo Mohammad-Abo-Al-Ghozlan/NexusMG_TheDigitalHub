@@ -157,7 +157,7 @@ async def recalculate_readiness_summary(
 
 
 @router.get("/trainees", response_model=List[UserResponse])
-async def list_trainees(
+async def list_all_trainees(
     current_user: User = Depends(get_current_instructor),
     db: AsyncSession = Depends(get_db)
 ):

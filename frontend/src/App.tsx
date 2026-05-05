@@ -29,6 +29,11 @@ import { TraineesPage } from '@/pages/instructor/Trainees'
 import { TraineeDetailPage } from '@/pages/instructor/TraineeDetail'
 import { AnalyticsPage } from '@/pages/instructor/Analytics'
 
+const getHomePath = (role?: string) => {
+  if (role === 'instructor' || role === 'admin') return '/instructor'
+  return '/dashboard'
+}
+
 // Protected Route Component
 function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) {
   const { isAuthenticated, user, isLoading } = useAuthStore()
@@ -46,14 +51,14 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
   }
 
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to={getHomePath(user.role)} replace />
   }
 
   return <>{children}</>
 }
 
 export default function App() {
-  const { fetchUser, isAuthenticated } = useAuthStore()
+  const { fetchUser, isAuthenticated, user } = useAuthStore()
 
   useEffect(() => {
     fetchUser()
@@ -106,7 +111,7 @@ export default function App() {
         </Route>
 
         {/* Fallback */}
-        <Route path="*" element={<Navigate to={isAuthenticated ? '/dashboard' : '/'} replace />} />
+        <Route path="*" element={<Navigate to={isAuthenticated ? getHomePath(user?.role) : '/'} replace />} />
       </Routes>
     </TooltipProvider>
   )

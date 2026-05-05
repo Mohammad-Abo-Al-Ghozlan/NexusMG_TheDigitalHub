@@ -55,11 +55,12 @@ class GroqService:
                 "ai.groq.error duration_ms=%.2f model=%s error=%s",
                 duration_ms,
                 self.model,
-                str(e)
+                repr(e)
             )
             if self.allow_mock:
+                ai_logger.info("ai.groq.fallback_to_mock model=%s", self.model)
                 return self._mock_response(prompt)
-            raise RuntimeError(f"Groq API error: {e}") from e
+            raise RuntimeError(f"Groq API error ({self.model}): {e}") from e
     
     async def analyze_cv(self, cv_text: str, skills: List[str], experience: List[Dict], education: List[Dict]) -> Dict[str, Any]:
         """Analyze CV content and provide scores and feedback."""
@@ -189,14 +190,25 @@ Provide analysis in this exact JSON format:
         Generate realistic interview questions that test both technical knowledge and problem-solving.
         Always respond in valid JSON format."""
         
-        prompt = f"""Generate {count} interview questions for:
+        prompt = f"""Generate {count} challenging and professional interview questions for a tech candidate.
 Topic: {topic}
 Difficulty: {difficulty}
+
+The questions should test:
+1. Deep technical understanding
+2. Practical implementation experience
+3. Problem-solving approach
 
 Respond in this exact JSON format:
 {{
     "questions": [
-        {{"id": 1, "question": "question text", "topic": "{topic}", "difficulty": "{difficulty}", "expected_points": ["point1", "point2"]}},
+        {{
+            "id": 1, 
+            "question": "Clear, specific technical question", 
+            "topic": "{topic}", 
+            "difficulty": "{difficulty}", 
+            "expected_points": ["Key technical point 1", "Implementation detail", "Edge case handling"]
+        }},
         ...
     ]
 }}"""
@@ -238,14 +250,22 @@ Provide analysis in this exact JSON format:
         Generate questions that test grammar, vocabulary, comprehension, and writing skills.
         Always respond in valid JSON format."""
         
-        prompt = f"""Generate {count} English assessment questions.
+        prompt = f"""Generate {count} professional English assessment questions for a software engineer.
 Assessment Type: {assessment_type}
-Target: Technical professionals
+Focus: Professional communication, technical terminology, and workplace scenarios.
+EXCLUDE: Reading Comprehension and Listening sections. Focus on Grammar, Vocabulary, and Writing.
 
 Respond in this exact JSON format:
 {{
     "questions": [
-        {{"id": 1, "type": "multiple_choice|fill_blank|writing", "question": "question text", "options": ["a", "b", "c", "d"] or null, "correct_answer": "answer", "skill_tested": "grammar|vocabulary|comprehension"}},
+        {{
+            "id": 1, 
+            "type": "multiple_choice|fill_blank|writing", 
+            "question": "A workplace-relevant question", 
+            "options": ["Option A", "Option B", "Option C", "Option D"] or null, 
+            "correct_answer": "The correct choice or target phrase", 
+            "skill_tested": "grammar|vocabulary|writing"
+        }},
         ...
     ]
 }}"""
@@ -384,9 +404,27 @@ Provide analysis in this exact JSON format:
     
     def _default_interview_questions(self, topic: str, difficulty: str) -> List[Dict]:
         return [
-            {"id": 1, "question": f"Explain the core concepts of {topic}.", "topic": topic, "difficulty": difficulty, "expected_points": ["Clear explanation", "Examples"]},
-            {"id": 2, "question": f"What are the best practices in {topic}?", "topic": topic, "difficulty": difficulty, "expected_points": ["Industry standards", "Personal experience"]},
-            {"id": 3, "question": f"How would you debug a problem in {topic}?", "topic": topic, "difficulty": difficulty, "expected_points": ["Systematic approach", "Tools used"]}
+            {
+                "id": 1, 
+                "question": f"How do you ensure scalability and performance when working with {topic} in a large-scale production environment?", 
+                "topic": topic, 
+                "difficulty": difficulty, 
+                "expected_points": ["Load balancing", "Caching strategies", "Database optimization"]
+            },
+            {
+                "id": 2, 
+                "question": f"Describe a complex bug or architectural challenge you faced with {topic} and how you resolved it.", 
+                "topic": topic, 
+                "difficulty": difficulty, 
+                "expected_points": ["Root cause analysis", "Systematic debugging", "Preventative measures"]
+            },
+            {
+                "id": 3, 
+                "question": f"What are the most significant trade-offs to consider when using {topic} compared to alternative technologies?", 
+                "topic": topic, 
+                "difficulty": difficulty, 
+                "expected_points": ["Memory vs CPU", "Development speed vs Runtime performance", "Community support"]
+            }
         ]
     
     def _default_interview_analysis(self) -> Dict:
@@ -402,8 +440,27 @@ Provide analysis in this exact JSON format:
     
     def _default_english_questions(self) -> List[Dict]:
         return [
-            {"id": 1, "type": "multiple_choice", "question": "Choose the correct form: She ___ to the office every day.", "options": ["go", "goes", "going", "gone"], "correct_answer": "goes", "skill_tested": "grammar"},
-            {"id": 2, "type": "multiple_choice", "question": "What is the synonym of 'implement'?", "options": ["ignore", "execute", "delay", "remove"], "correct_answer": "execute", "skill_tested": "vocabulary"}
+            {
+                "id": 1, 
+                "type": "multiple_choice", 
+                "question": "Which sentence is most professional for a pull request review?", 
+                "options": [
+                    "Your code is bad, fix it.", 
+                    "I suggest refactoring this logic to improve readability.", 
+                    "This is not how I would do it.", 
+                    "Can you rewrite this whole part?"
+                ], 
+                "correct_answer": "I suggest refactoring this logic to improve readability.", 
+                "skill_tested": "vocabulary"
+            },
+            {
+                "id": 2, 
+                "type": "fill_blank", 
+                "question": "The team decided to ___ the deployment until the critical bug was fixed.", 
+                "options": ["defer", "accelerate", "ignore", "finalize"], 
+                "correct_answer": "defer", 
+                "skill_tested": "vocabulary"
+            }
         ]
     
     def _default_english_analysis(self) -> Dict:

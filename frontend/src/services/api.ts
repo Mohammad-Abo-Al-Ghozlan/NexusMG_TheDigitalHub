@@ -50,8 +50,8 @@ export const authApi = {
 export const userApi = {
   getProfile: () => api.get('/users/me'),
   updateProfile: (data: Record<string, unknown>) => api.put('/users/me', data),
-  getAll: () => api.get('/users'),
-  getById: (id: string) => api.get(`/users/${id}`),
+  getAll: () => api.get('/users/trainees'), // Match backend: list_all_trainees
+  getById: (id: string) => api.get(`/users/trainees/${id}`),
 }
 
 // CV Evaluation API
@@ -59,64 +59,60 @@ export const cvApi = {
   upload: (file: File) => {
     const formData = new FormData()
     formData.append('file', file)
-    return api.post('/cv/upload', formData, {
+    return api.post('/evaluations/cv/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   },
-  getEvaluation: (id: string) => api.get(`/cv/evaluation/${id}`),
-  getMyEvaluations: () => api.get('/cv/evaluations'),
+  getLatest: () => api.get('/evaluations/cv/latest'),
+  analyze: (evaluationId: number) => api.post(`/evaluations/cv/${evaluationId}/analyze`),
 }
 
 // GitHub Evaluation API
 export const githubApi = {
-  evaluate: (username: string) => api.post('/github/evaluate', { username }),
-  getEvaluation: (id: string) => api.get(`/github/evaluation/${id}`),
-  getMyEvaluations: () => api.get('/github/evaluations'),
+  evaluate: (username: string) => api.post('/evaluations/github/analyze', { username }),
+  getLatest: () => api.get('/evaluations/github/latest'),
 }
 
 // LinkedIn Evaluation API
 export const linkedinApi = {
-  evaluate: (profileUrl: string) => api.post('/linkedin/evaluate', { profile_url: profileUrl }),
-  submitManual: (data: Record<string, unknown>) => api.post('/linkedin/submit-manual', data),
-  getEvaluation: (id: string) => api.get(`/linkedin/evaluation/${id}`),
-  getMyEvaluations: () => api.get('/linkedin/evaluations'),
+  evaluate: (profileUrl: string) => api.post('/evaluations/linkedin/analyze', { profile_url: profileUrl }),
+  getLatest: () => api.get('/evaluations/linkedin/latest'),
 }
 
 // Idea Evaluation API
 export const ideaApi = {
   submit: (data: { title: string; description: string; tech_stack: string[] }) =>
-    api.post('/idea/submit', data),
-  getEvaluation: (id: string) => api.get(`/idea/evaluation/${id}`),
-  getMyEvaluations: () => api.get('/idea/evaluations'),
+    api.post('/evaluations/idea/analyze', data),
+  getLatest: () => api.get('/evaluations/idea/latest'),
 }
 
 // Interview API
 export const interviewApi = {
-  start: (techStack: string[]) => api.post('/interview/start', { tech_stack: techStack }),
-  submitAnswer: (interviewId: string, questionId: string, answer: string) =>
-    api.post(`/interview/${interviewId}/answer`, { question_id: questionId, answer }),
-  getQuestions: (interviewId: string) => api.get(`/interview/${interviewId}/questions`),
-  getResults: (interviewId: string) => api.get(`/interview/${interviewId}/results`),
-  getMyInterviews: () => api.get('/interview/my'),
+  start: (topic: string, difficulty: string = 'intermediate') => 
+    api.post('/evaluations/interview/start', { topic, difficulty }),
+  submitAnswer: (evaluationId: number, questionId: number, answer: string) =>
+    api.post(`/evaluations/interview/${evaluationId}/answer`, { question_id: questionId, answer }),
+  complete: (evaluationId: number) => 
+    api.post(`/evaluations/interview/${evaluationId}/complete`),
+  getLatest: () => api.get('/evaluations/interview/latest'),
 }
 
 // English Assessment API
 export const englishApi = {
-  start: () => api.post('/english/start'),
-  submitAnswer: (assessmentId: string, questionId: string, answer: string) =>
-    api.post(`/english/${assessmentId}/answer`, { question_id: questionId, answer }),
-  getResults: (assessmentId: string) => api.get(`/english/${assessmentId}/results`),
-  getMyAssessments: () => api.get('/english/my'),
+  start: (type: string = 'comprehensive') => 
+    api.post('/evaluations/english/start', { assessment_type: type }),
+  submitAnswer: (evaluationId: number, questionId: number, answer: string) =>
+    api.post(`/evaluations/english/${evaluationId}/answer`, { question_id: questionId, answer }),
+  complete: (evaluationId: number) => 
+    api.post(`/evaluations/english/${evaluationId}/complete`),
+  getLatest: () => api.get('/evaluations/english/latest'),
 }
 
 // Instructor API
 export const instructorApi = {
   getTrainees: () => api.get('/instructor/trainees'),
   getTraineeDetails: (id: string) => api.get(`/instructor/trainees/${id}`),
-  inviteTrainee: (email: string) => api.post('/instructor/invite', { email }),
   getAnalytics: () => api.get('/instructor/analytics'),
-  exportReport: (traineeId: string, format: 'pdf' | 'csv') =>
-    api.get(`/instructor/export/${traineeId}`, { params: { format }, responseType: 'blob' }),
 }
 
 // Readiness Score API
