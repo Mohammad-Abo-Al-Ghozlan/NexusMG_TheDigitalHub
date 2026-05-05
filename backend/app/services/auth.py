@@ -14,6 +14,11 @@ from app.database import get_db
 from app.models.user import User, UserRole
 from app.schemas.user import TokenData
 
+# Fix passlib/bcrypt compatibility issue
+import bcrypt
+if not hasattr(bcrypt, "__about__"):
+    bcrypt.__about__ = type("About", (), {"__version__": bcrypt.__version__})
+
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

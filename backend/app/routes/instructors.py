@@ -54,7 +54,7 @@ async def analytics_overview(
         res = await db.execute(
             select(func.avg(col)).where(ReadinessScore.user_id.in_(select(trainee_subq.c.id)))
         )
-        module_avgs[module] = round(res.scalar_one() or 0.0, 3)
+        module_avgs[module] = round(res.scalar_one() or 0.0, 2)
 
     # Distribution
     dist = {"beginner": 0, "intermediate": 0, "advanced": 0, "expert": 0}
@@ -69,7 +69,7 @@ async def analytics_overview(
 
     return {
         "totalTrainees": total_trainees,
-        "averageReadiness": round(readiness_avg, 3),
+        "averageReadiness": round(readiness_avg, 2),
         "evaluation_counts": evaluation_counts,
         "moduleAverages": module_avgs,
         "distribution": dist,
@@ -80,7 +80,7 @@ async def analytics_overview(
         },
         "weeklyActivity": {
             "evaluationsCompleted": sum(evaluation_counts.values()),
-            "averageScore": round(readiness_avg, 3),
+            "averageScore": round(readiness_avg, 2),
             "topPerformers": dist["expert"]
         }
     }
@@ -109,7 +109,7 @@ async def list_instructor_trainees(
             "full_name": t.full_name,
             "email": t.email,
             "avatar_url": t.avatar_url,
-            "readiness_score": score.overall_score if score else 0,
+            "readiness_score": round(score.overall_score, 2) if score else 0,
             "last_active": t.updated_at
         })
     return enriched
@@ -149,15 +149,15 @@ async def get_instructor_trainee_details(
         "avatar_url": trainee.avatar_url,
         "created_at": trainee.created_at.isoformat() if trainee.created_at else None,
         "last_active": trainee.updated_at.isoformat() if trainee.updated_at else None,
-        "readiness_score": round(score.overall_score, 1) if score else 0,
+        "readiness_score": round(score.overall_score, 2) if score else 0,
         "status": "improving" if score and score.overall_score > 70 else "stable",
         "modules": {
-            "cv": round(score.cv_score, 1) if score else 0,
-            "github": round(score.github_score, 1) if score else 0,
-            "linkedin": round(score.linkedin_score, 1) if score else 0,
-            "idea": round(score.idea_score, 1) if score else 0,
-            "interview": round(score.interview_score, 1) if score else 0,
-            "english": round(score.english_score, 1) if score else 0,
+            "cv": round(score.cv_score, 2) if score else 0,
+            "github": round(score.github_score, 2) if score else 0,
+            "linkedin": round(score.linkedin_score, 2) if score else 0,
+            "idea": round(score.idea_score, 2) if score else 0,
+            "interview": round(score.interview_score, 2) if score else 0,
+            "english": round(score.english_score, 2) if score else 0,
         },
         "evaluations": [
             {

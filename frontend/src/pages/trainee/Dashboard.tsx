@@ -152,7 +152,7 @@ export function TraineeDashboard() {
                   </svg>
                   <div className="absolute text-center">
                     <span className={`text-3xl font-bold font-score ${getScoreColor(readinessScore.overall)}`}>
-                      {readinessScore.overall}%
+                      {readinessScore.overall.toFixed(2)}%
                     </span>
                   </div>
                 </div>
@@ -166,7 +166,7 @@ export function TraineeDashboard() {
                       <div key={key} className="space-y-1">
                         <div className="flex items-center justify-between text-sm">
                           <span className="capitalize text-[#8888AA]">{key}</span>
-                          <span className="font-medium font-score text-[#F0F0FF]">{value}%</span>
+                          <span className="font-medium font-score text-[#F0F0FF]">{value.toFixed(2)}%</span>
                         </div>
                         <Progress value={value} className="h-1.5" />
                       </div>

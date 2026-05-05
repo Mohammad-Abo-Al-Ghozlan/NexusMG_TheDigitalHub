@@ -133,7 +133,7 @@ export function InstructorDashboard() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analytics?.averageReadiness || 0}%</div>
+            <div className="text-2xl font-bold">{analytics?.averageReadiness?.toFixed(2) || '0.00'}%</div>
             <Progress value={analytics?.averageReadiness || 0} className="mt-2" />
           </CardContent>
         </Card>
@@ -180,7 +180,7 @@ export function InstructorDashboard() {
               <div key={module} className="space-y-1">
                 <div className="flex items-center justify-between text-sm">
                   <span className="capitalize">{module}</span>
-                  <span className="font-medium">{score}%</span>
+                  <span className="font-medium">{score.toFixed(2)}%</span>
                 </div>
                 <Progress value={score} className="h-2" />
               </div>
@@ -212,7 +212,7 @@ export function InstructorDashboard() {
                       </p>
                     </div>
                     <Badge variant={evaluation.score >= 70 ? 'success' : evaluation.score >= 50 ? 'warning' : 'destructive'}>
-                      {evaluation.score}%
+                      {evaluation.score.toFixed(2)}%
                     </Badge>
                   </div>
                 ))}
@@ -263,7 +263,7 @@ export function InstructorDashboard() {
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
-                      <p className="text-lg font-bold">{trainee.readiness_score}%</p>
+                      <p className="text-lg font-bold">{trainee.readiness_score.toFixed(2)}%</p>
                       <p className="text-xs text-muted-foreground">Readiness</p>
                     </div>
                     {getStatusBadge(trainee.status)}

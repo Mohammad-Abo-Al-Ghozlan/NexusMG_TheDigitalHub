@@ -187,7 +187,7 @@ export function TraineeDetailPage() {
                 <TrendingUp className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{trainee.readiness_score}%</p>
+                <p className="text-2xl font-bold">{trainee.readiness_score.toFixed(2)}%</p>
                 <p className="text-sm text-muted-foreground">Readiness Score</p>
               </div>
             </div>
@@ -256,7 +256,7 @@ export function TraineeDetailPage() {
                     <div className="flex items-center justify-between text-sm">
                       <span className="capitalize font-medium">{module}</span>
                       <span className={score >= 70 ? 'text-green-600' : score >= 50 ? 'text-yellow-600' : 'text-red-600'}>
-                        {score}%
+                        {score.toFixed(2)}%
                       </span>
                     </div>
                     <Progress value={score} className="mt-1 h-2" />
@@ -286,7 +286,7 @@ export function TraineeDetailPage() {
                           style={{ width: `${point.score}%` }}
                         />
                       </div>
-                      <span className="text-xs w-10 text-right">{point.score}%</span>
+                      <span className="text-xs w-10 text-right">{point.score.toFixed(2)}%</span>
                     </div>
                   ))}
                 </div>
