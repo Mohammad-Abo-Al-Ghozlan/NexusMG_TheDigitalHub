@@ -81,7 +81,8 @@ async def start_assessment(
             "type": q.get("type"),
             "question": q.get("question"),
             "options": q.get("options"),
-            "skill_tested": q.get("skill_tested")
+            "skill_tested": q.get("skill_tested"),
+            "passage": q.get("passage")
         }
         for q in questions
     ]

@@ -1,8 +1,9 @@
 """
-LinkedIn Service - Profile fetching via Proxycurl with manual fallback
+LinkedIn Service - Profile fetching via Proxycurl/LinkdAPI with manual fallback
 """
 import httpx
 from typing import Dict, Any, Optional
+from urllib.parse import urlparse
 from app.config import settings
 
 
@@ -10,16 +11,36 @@ class LinkedInService:
     PROXYCURL_API_URL = "https://nubela.co/proxycurl/api/v2/linkedin"
     
     def __init__(self):
-        self.api_key = settings.PROXYCURL_API_KEY.get_secret_value() or settings.LinkdAPI_API_KEY.get_secret_value()
+        self.proxycurl_key = settings.PROXYCURL_API_KEY.get_secret_value().strip()
+        self.linkdapi_key = settings.LinkdAPI_API_KEY.get_secret_value().strip()
+        self.linkdapi_base_url = settings.LINKDAPI_BASE_URL.rstrip("/")
+        self.provider: Optional[str] = None
+        self.api_key: Optional[str] = None
+
+        if self.linkdapi_key:
+            self.provider = "linkdapi"
+            self.api_key = self.linkdapi_key
+        elif self.proxycurl_key:
+            self.provider = "proxycurl"
+            self.api_key = self.proxycurl_key
     
     async def fetch_profile(self, linkedin_url: str) -> Optional[Dict[str, Any]]:
         """Fetch LinkedIn profile via Proxycurl or LinkdAPI."""
         if not self.api_key:
             return None
-        
-        is_linkdapi = self.api_key.startswith("li-")
-        url = "https://api.linkdapi.com/v1/linkedin/profile" if is_linkdapi else self.PROXYCURL_API_URL
-        headers = {"x-api-key": self.api_key} if is_linkdapi else {"Authorization": f"Bearer {self.api_key}"}
+
+        if self.provider == "linkdapi":
+            username = self._extract_username(linkedin_url)
+            if not username:
+                return {"error": "Invalid LinkedIn profile URL"}
+
+            profile, error = await self._fetch_linkdapi_profile(username)
+            if profile:
+                return profile
+            return {"error": error or "LinkdAPI profile fetch failed"}
+
+        url = self.PROXYCURL_API_URL
+        headers = {"Authorization": f"Bearer {self.api_key}"}
         params = {"url": linkedin_url}
         
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -36,7 +57,6 @@ class LinkedInService:
                 if response.status_code == 200:
                     data = response.json()
                     print(f"LinkedIn API data received (keys): {list(data.keys())}")
-                    # LinkdAPI might have a different structure, but we'll try to parse it
                     return self._parse_profile(data)
                 elif response.status_code == 404:
                     print("LinkedIn profile not found (404)")
@@ -47,23 +67,95 @@ class LinkedInService:
             except Exception as e:
                 print(f"LinkedIn API exception: {e}")
                 return {"error": str(e)}
+
+    async def _fetch_linkdapi_profile(self, username: str) -> tuple[Optional[Dict[str, Any]], Optional[str]]:
+        headers = {"x-api-key": self.api_key}
+        last_error: Optional[str] = None
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            for path in ("/profile/full", "/profile/overview"):
+                url = f"{self.linkdapi_base_url}{path}"
+                try:
+                    print(f"Fetching LinkdAPI profile from {url} for username: {username}")
+                    response = await client.get(url, headers=headers, params={"username": username})
+                    print(f"LinkdAPI response status: {response.status_code}")
+
+                    if response.status_code == 200:
+                        data = response.json()
+                        if isinstance(data, dict) and (data.get("error") or data.get("errors")):
+                            last_error = f"LinkdAPI error payload: {data}"
+                            print(last_error)
+                            continue
+                        return self._parse_profile(data), None
+
+                    if response.status_code in {400, 404}:
+                        last_error = f"LinkdAPI responded with {response.status_code} for {url}"
+                        continue
+
+                    last_error = f"LinkdAPI error: {response.status_code} - {response.text}"
+                    print(last_error)
+                except Exception as exc:
+                    last_error = f"LinkdAPI request failed for {url}: {exc}"
+                    print(last_error)
+
+            return None, last_error
+
+    def _extract_username(self, value: str) -> Optional[str]:
+        if not value:
+            return None
+
+        raw = value.strip()
+        if "linkedin.com" not in raw and "/" not in raw:
+            return raw
+
+        if not raw.startswith("http://") and not raw.startswith("https://"):
+            raw = f"https://{raw}"
+
+        parsed = urlparse(raw)
+        path = parsed.path.strip("/")
+        if not path:
+            return None
+
+        segments = [seg for seg in path.split("/") if seg]
+        if not segments:
+            return None
+
+        if segments[0] in {"in", "pub"} and len(segments) > 1:
+            return segments[1]
+
+        if segments[0] == "company":
+            return None
+
+        return segments[0]
     
     def _parse_profile(self, data: Dict) -> Dict[str, Any]:
         """Parse LinkedIn profile response into standardized format."""
         # Handle LinkdAPI wrapper if present
-        person = data.get("person", data)
+        if isinstance(data.get("data"), dict):
+            data = data["data"]
+        if isinstance(data.get("person"), dict):
+            data = data["person"]
+
+        person = data
+        full_name = (
+            person.get("full_name")
+            or person.get("fullName")
+            or person.get("name")
+            or " ".join(filter(None, [person.get("firstName"), person.get("lastName")])).strip()
+            or None
+        )
         
         return {
-            "full_name": person.get("full_name") or person.get("name") or person.get("fullName"),
+            "full_name": full_name,
             "headline": person.get("headline"),
             "summary": person.get("summary") or person.get("about") or person.get("description"),
-            "location": person.get("city") or person.get("location"),
-            "country": person.get("country_full_name") or person.get("countryCode"),
+            "location": person.get("city") or person.get("location") or person.get("geoLocationName"),
+            "country": person.get("country_full_name") or person.get("countryCode") or person.get("geoCountryName"),
             "industry": person.get("industry"),
-            "profile_pic_url": person.get("profile_pic_url") or person.get("photoUrl") or person.get("avatarUrl"),
-            "public_identifier": person.get("public_identifier") or person.get("publicIdentifier") or person.get("id"),
-            "connections": person.get("connections") or person.get("connectionsCount") or 0,
-            "follower_count": person.get("follower_count") or person.get("followersCount") or 0,
+            "profile_pic_url": person.get("profile_pic_url") or person.get("photoUrl") or person.get("avatarUrl") or person.get("profilePictureUrl"),
+            "public_identifier": person.get("public_identifier") or person.get("publicIdentifier") or person.get("vanityName") or person.get("id"),
+            "connections": person.get("connections") or person.get("connectionsCount") or person.get("networkSize") or 0,
+            "follower_count": person.get("follower_count") or person.get("followersCount") or person.get("followers") or 0,
             "experiences": [
                 {
                     "title": exp.get("title"),
@@ -73,7 +165,7 @@ class LinkedInService:
                     "ends_at": exp.get("ends_at") or exp.get("endDate"),
                     "description": exp.get("description")
                 }
-                for exp in (person.get("experiences") or person.get("positions") or [])
+                for exp in (person.get("experiences") or person.get("positions") or person.get("experience") or [])
             ],
             "education": [
                 {
@@ -83,9 +175,9 @@ class LinkedInService:
                     "starts_at": edu.get("starts_at") or edu.get("startDate"),
                     "ends_at": edu.get("ends_at") or edu.get("endDate")
                 }
-                for edu in (person.get("education") or person.get("educations") or [])
+                for edu in (person.get("education") or person.get("educations") or person.get("educationHistory") or [])
             ],
-            "skills": person.get("skills") or [],
+            "skills": person.get("skills") or person.get("skillsList") or [],
             "certifications": [
                 {
                     "name": cert.get("name"),

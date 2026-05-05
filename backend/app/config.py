@@ -53,6 +53,7 @@ class Settings(BaseSettings):
     GITHUB_TOKEN: SecretStr = SecretStr("")
     PROXYCURL_API_KEY: SecretStr = SecretStr("")
     LinkdAPI_API_KEY: SecretStr = SecretStr("")
+    LINKDAPI_BASE_URL: str = "https://api.linkdapi.com/v1"
     
     # File Upload
     MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10MB

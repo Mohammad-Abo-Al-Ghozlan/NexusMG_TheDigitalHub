@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useEvaluationStore } from '@/stores/evaluationStore'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -41,6 +41,7 @@ export function InterviewPage() {
   const [answer, setAnswer] = useState('')
   const [timeLeft, setTimeLeft] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
+  const [isAdvancing, setIsAdvancing] = useState(false)
   
   const {
     interviewResults,
@@ -52,21 +53,59 @@ export function InterviewPage() {
     fetchInterviewResults,
   } = useEvaluationStore()
 
+  const advanceQuestion = useCallback(async (reason: 'manual' | 'timeout' = 'manual') => {
+    if (!currentInterview || isAdvancing) return
+
+    setIsAdvancing(true)
+    const questions = currentInterview?.questions as Question[] || []
+    const currentQuestion = questions[currentQuestionIndex]
+    
+    try {
+      if (currentQuestion && answer.trim()) {
+        await submitInterviewAnswer(currentInterview.id, currentQuestion.id, answer)
+        setAnswers(prev => ({ ...prev, [currentQuestion.id]: answer }))
+      } else if (reason === 'timeout') {
+        toast.info('Time is up — moving to the next question')
+      }
+
+      setAnswer('')
+      
+      if (currentQuestionIndex < questions.length - 1) {
+        const nextIndex = currentQuestionIndex + 1
+        setCurrentQuestionIndex(nextIndex)
+        setTimeLeft(questions[nextIndex].time_limit)
+      } else {
+        setIsInterviewActive(false)
+        try {
+          await completeInterview(currentInterview.id)
+          toast.success('Interview completed! Check your results.')
+        } catch {
+          toast.error('Failed to complete interview')
+        }
+      }
+    } catch {
+      toast.error('Failed to submit answer')
+    } finally {
+      setIsAdvancing(false)
+    }
+  }, [answer, completeInterview, currentInterview, currentQuestionIndex, isAdvancing, submitInterviewAnswer])
+
   useEffect(() => {
     fetchInterviewResults()
   }, [fetchInterviewResults])
 
   useEffect(() => {
-    let timer: NodeJS.Timeout
-    if (isInterviewActive && timeLeft > 0) {
-      timer = setInterval(() => {
-        setTimeLeft(prev => prev - 1)
-      }, 1000)
-    } else if (timeLeft === 0 && isInterviewActive) {
-      handleNextQuestion()
-    }
+    if (!isInterviewActive || isAdvancing || timeLeft <= 0) return
+    const timer = setInterval(() => {
+      setTimeLeft(prev => Math.max(prev - 1, 0))
+    }, 1000)
     return () => clearInterval(timer)
-  }, [isInterviewActive, timeLeft])
+  }, [isInterviewActive, isAdvancing, timeLeft])
+
+  useEffect(() => {
+    if (!isInterviewActive || isAdvancing || timeLeft !== 0) return
+    void advanceQuestion('timeout')
+  }, [isInterviewActive, isAdvancing, timeLeft, advanceQuestion])
 
   const toggleTech = (tech: string) => {
     setSelectedTech(prev =>
@@ -84,6 +123,9 @@ export function InterviewPage() {
       const interview = await startInterview(selectedTech)
       setIsInterviewActive(true)
       setCurrentQuestionIndex(0)
+      setAnswers({})
+      setAnswer('')
+      setIsAdvancing(false)
       const questions = interview.questions as Question[]
       if (questions.length > 0) {
         setTimeLeft(questions[0].time_limit)
@@ -93,34 +135,6 @@ export function InterviewPage() {
     }
   }
 
-  const handleNextQuestion = async () => {
-    const questions = currentInterview?.questions as Question[] || []
-    const currentQuestion = questions[currentQuestionIndex]
-    
-    if (currentQuestion && answer.trim()) {
-      try {
-        await submitInterviewAnswer(currentInterview!.id, currentQuestion.id, answer)
-        setAnswers(prev => ({ ...prev, [currentQuestion.id]: answer }))
-      } catch {
-        toast.error('Failed to submit answer')
-      }
-    }
-
-    setAnswer('')
-    
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(prev => prev + 1)
-      setTimeLeft(questions[currentQuestionIndex + 1].time_limit)
-    } else {
-      setIsInterviewActive(false)
-      try {
-        await completeInterview(currentInterview!.id)
-        toast.success('Interview completed! Check your results.')
-      } catch {
-        toast.error('Failed to complete interview')
-      }
-    }
-  }
 
   const questions = currentInterview?.questions as Question[] || []
   const currentQuestion = questions[currentQuestionIndex]
@@ -275,7 +289,7 @@ export function InterviewPage() {
                 <span className={timeLeft < 30 ? 'text-red-500' : ''}>{formatTime(timeLeft)}</span>
               </div>
             </div>
-            <Progress value={(currentQuestionIndex / questions.length) * 100} className="mt-2" />
+            <Progress value={questions.length ? ((currentQuestionIndex + 1) / questions.length) * 100 : 0} className="mt-2" />
           </CardHeader>
           <CardContent className="space-y-6">
             {currentQuestion && (
@@ -306,7 +320,7 @@ export function InterviewPage() {
                   >
                     End Interview
                   </Button>
-                  <Button onClick={handleNextQuestion} className="flex-1">
+                  <Button onClick={() => void advanceQuestion('manual')} className="flex-1" disabled={isAdvancing}>
                     {currentQuestionIndex < questions.length - 1 ? 'Next Question' : 'Submit Interview'}
                   </Button>
                 </div>

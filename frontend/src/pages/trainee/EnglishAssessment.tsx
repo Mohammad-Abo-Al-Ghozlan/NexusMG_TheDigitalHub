@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useEvaluationStore } from '@/stores/evaluationStore'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,7 @@ import {
   Languages,
   Play,
   Clock,
+  Timer,
   BookOpen,
   Pencil,
   Headphones,
@@ -25,6 +26,7 @@ interface Question {
   question: string
   options?: string[]
   passage?: string
+  time_limit: number
 }
 
 export function EnglishAssessmentPage() {
@@ -32,6 +34,8 @@ export function EnglishAssessmentPage() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState<string>('')
   const [answers, setAnswers] = useState<Record<string, string>>({})
+  const [timeLeft, setTimeLeft] = useState(0)
+  const [isAdvancing, setIsAdvancing] = useState(false)
   
   const {
     englishResults,
@@ -47,46 +51,75 @@ export function EnglishAssessmentPage() {
     fetchEnglishResults()
   }, [fetchEnglishResults])
 
-  const handleStartAssessment = async () => {
-    try {
-      await startEnglish()
-      setIsAssessmentActive(true)
-      setCurrentQuestionIndex(0)
-      setAnswers({})
-    } catch {
-      toast.error('Failed to start assessment')
-    }
-  }
+  const advanceQuestion = useCallback(async (reason: 'manual' | 'timeout' = 'manual') => {
+    if (!currentAssessment || isAdvancing) return
 
-  const handleSelectAnswer = async (answer: string) => {
-    setSelectedAnswer(answer)
+    setIsAdvancing(true)
     const questions = currentAssessment?.questions as Question[] || []
     const currentQuestion = questions[currentQuestionIndex]
-    
-    if (currentQuestion) {
-      try {
-        await submitEnglishAnswer(currentAssessment!.id, currentQuestion.id, answer)
-        setAnswers(prev => ({ ...prev, [currentQuestion.id]: answer }))
-      } catch {
-        toast.error('Failed to submit answer')
-      }
-    }
 
-    // Auto-advance after short delay
-    setTimeout(async () => {
+    try {
+      if (currentQuestion && selectedAnswer) {
+        await submitEnglishAnswer(currentAssessment.id, currentQuestion.id, selectedAnswer)
+        setAnswers(prev => ({ ...prev, [currentQuestion.id]: selectedAnswer }))
+      } else if (reason === 'timeout') {
+        toast.info('Time is up — moving to the next question')
+      }
+
+      setSelectedAnswer('')
+
       if (currentQuestionIndex < questions.length - 1) {
-        setCurrentQuestionIndex(prev => prev + 1)
-        setSelectedAnswer('')
+        const nextIndex = currentQuestionIndex + 1
+        setCurrentQuestionIndex(nextIndex)
+        setTimeLeft(questions[nextIndex].time_limit)
       } else {
         setIsAssessmentActive(false)
         try {
-          await completeEnglish(currentAssessment!.id)
+          await completeEnglish(currentAssessment.id)
           toast.success('Assessment completed!')
         } catch {
           toast.error('Failed to complete assessment')
         }
       }
-    }, 500)
+    } catch {
+      toast.error('Failed to submit answer')
+    } finally {
+      setIsAdvancing(false)
+    }
+  }, [completeEnglish, currentAssessment, currentQuestionIndex, isAdvancing, selectedAnswer, submitEnglishAnswer])
+
+  useEffect(() => {
+    if (!isAssessmentActive || isAdvancing || timeLeft <= 0) return
+    const timer = setInterval(() => {
+      setTimeLeft(prev => Math.max(prev - 1, 0))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [isAssessmentActive, isAdvancing, timeLeft])
+
+  useEffect(() => {
+    if (!isAssessmentActive || isAdvancing || timeLeft !== 0) return
+    void advanceQuestion('timeout')
+  }, [advanceQuestion, isAssessmentActive, isAdvancing, timeLeft])
+
+  const handleStartAssessment = async () => {
+    try {
+      const assessment = await startEnglish()
+      setIsAssessmentActive(true)
+      setCurrentQuestionIndex(0)
+      setAnswers({})
+      setSelectedAnswer('')
+      setIsAdvancing(false)
+      const questions = assessment.questions as Question[]
+      if (questions.length > 0) {
+        setTimeLeft(questions[0].time_limit)
+      }
+    } catch {
+      toast.error('Failed to start assessment')
+    }
+  }
+
+  const handleSelectAnswer = (answer: string) => {
+    setSelectedAnswer(answer)
   }
 
   const questions = currentAssessment?.questions as Question[] || []
@@ -117,6 +150,12 @@ export function EnglishAssessmentPage() {
       case 'listening': return <Headphones className="h-4 w-4" />
       default: return <Languages className="h-4 w-4" />
     }
+  }
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
   return (
@@ -271,8 +310,12 @@ export function EnglishAssessmentPage() {
                   </Badge>
                 )}
               </div>
+              <div className="flex items-center gap-2 text-lg font-mono">
+                <Timer className={`h-5 w-5 ${timeLeft < 15 ? 'text-red-500 animate-pulse' : ''}`} />
+                <span className={timeLeft < 15 ? 'text-red-500' : ''}>{formatTime(timeLeft)}</span>
+              </div>
             </div>
-            <Progress value={(currentQuestionIndex / questions.length) * 100} className="mt-2" />
+            <Progress value={questions.length ? ((currentQuestionIndex + 1) / questions.length) * 100 : 0} className="mt-2" />
           </CardHeader>
           <CardContent className="space-y-6">
             {currentQuestion && (
@@ -309,6 +352,10 @@ export function EnglishAssessmentPage() {
                   ))}
                 </div>
 
+                <p className="text-xs text-muted-foreground">
+                  Select an option and click next. You can skip to move on.
+                </p>
+
                 <div className="flex gap-4">
                   <Button
                     variant="outline"
@@ -318,6 +365,9 @@ export function EnglishAssessmentPage() {
                     }}
                   >
                     End Assessment
+                  </Button>
+                  <Button onClick={() => void advanceQuestion('manual')} className="flex-1" disabled={isAdvancing}>
+                    {currentQuestionIndex < questions.length - 1 ? 'Next Question' : 'Submit Assessment'}
                   </Button>
                 </div>
               </>

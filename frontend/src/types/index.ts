@@ -159,4 +159,5 @@ export interface EnglishQuestion {
   options?: string[]
   audio_url?: string
   passage?: string
+  time_limit: number
 }

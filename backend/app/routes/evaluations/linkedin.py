@@ -44,15 +44,17 @@ async def analyze_linkedin(
     
     profile_data = None
     is_manual = False
+    fetch_error = None
     
     # Try auto-fetch first if URL provided
     if data.profile_url:
         profile_data = await linkedin_service.fetch_profile(data.profile_url)
-        
-        if profile_data and not profile_data.get("error"):
-            current_user.linkedin_url = data.profile_url
-        else:
+
+        if profile_data and profile_data.get("error"):
+            fetch_error = profile_data.get("error")
             profile_data = None
+        elif profile_data:
+            current_user.linkedin_url = data.profile_url
     
     # Fall back to manual data
     if not profile_data and data.manual_data:
@@ -61,11 +63,11 @@ async def analyze_linkedin(
     
     if not profile_data:
         evaluation.status = EvaluationStatus.FAILED
-        evaluation.feedback = "Could not fetch LinkedIn profile. Please provide manual data."
+        evaluation.feedback = fetch_error or "Could not fetch LinkedIn profile. Please provide manual data."
         await db.commit()
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Could not fetch LinkedIn profile and no manual data provided"
+            status_code=status.HTTP_502_BAD_GATEWAY if fetch_error else status.HTTP_400_BAD_REQUEST,
+            detail=fetch_error or "Could not fetch LinkedIn profile and no manual data provided"
         )
     
     # Calculate completeness

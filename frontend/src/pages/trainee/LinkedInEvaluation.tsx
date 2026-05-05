@@ -64,8 +64,10 @@ export function LinkedInEvaluationPage() {
     try {
       await evaluateLinkedIn(data.profileUrl)
       toast.success('LinkedIn profile evaluated successfully!')
-    } catch {
-      toast.error('Auto-fetch failed. Please try manual entry.')
+    } catch (err: unknown) {
+      const apiError = err as { response?: { data?: { detail?: string } } }
+      const message = apiError.response?.data?.detail || 'Auto-fetch failed. Please try manual entry.'
+      toast.error(message)
       setMode('manual')
     }
   }

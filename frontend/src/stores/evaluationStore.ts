@@ -215,12 +215,21 @@ const mapEnglishQuestions = (questions: Array<Record<string, any>>) =>
         ? skill
         : 'reading'
 
+    const time_limit = typeof q.time_limit === 'number'
+      ? q.time_limit
+      : type === 'reading'
+        ? 120
+        : type === 'listening'
+          ? 90
+          : 60
+
     return {
       id: String(q.id),
       type,
       question: q.question,
       options: q.options ?? undefined,
       passage: q.passage ?? undefined,
+      time_limit,
     }
   })
 
