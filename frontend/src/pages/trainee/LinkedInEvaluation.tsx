@@ -83,16 +83,23 @@ export function LinkedInEvaluationPage() {
 
   const onManualSubmit = async (data: ManualForm) => {
     try {
+      // Robust splitting: try double newlines first, then single newlines
+      const splitText = (text: string) => {
+        const blocks = text.split(/\n{2,}/).filter(b => b.trim());
+        if (blocks.length > 1) return blocks;
+        return text.split('\n').filter(b => b.trim() && b.length > 5);
+      };
+
       await submitManualLinkedIn({
         headline: data.headline,
         summary: data.summary,
-        experiences: data.experience.split('\n\n').filter(e => e.trim()).map((exp, idx) => ({
-          title: idx === 0 ? 'Latest Experience' : `Previous Experience ${idx}`,
+        experiences: splitText(data.experience).map((exp, idx) => ({
+          title: idx === 0 ? 'Professional Experience' : `Experience ${idx + 1}`,
           company: 'Company',
           description: exp.trim(),
         })),
         skills: data.skills.split(',').map(s => s.trim()),
-        education: data.education.split('\n\n').filter(e => e.trim()).map((edu, idx) => ({
+        education: splitText(data.education).map((edu, idx) => ({
           school: edu.trim(),
           degree_name: 'Degree',
         })),
@@ -244,10 +251,11 @@ export function LinkedInEvaluationPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="education">Education (separate items with a blank line)</Label>
-                    <Input
+                    <Label htmlFor="education">Education (one per line or separate with blank lines)</Label>
+                    <Textarea
                       id="education"
-                      placeholder="BS Computer Science...&#10;&#10;High School..."
+                      placeholder="BS Computer Science...&#10;High School..."
+                      rows={3}
                       {...manualForm.register('education')}
                     />
                     {manualForm.formState.errors.education && (
