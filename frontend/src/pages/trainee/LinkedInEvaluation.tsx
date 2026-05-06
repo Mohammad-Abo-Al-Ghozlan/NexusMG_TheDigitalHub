@@ -86,20 +86,16 @@ export function LinkedInEvaluationPage() {
       await submitManualLinkedIn({
         headline: data.headline,
         summary: data.summary,
-        experiences: [
-          {
-            title: 'Professional Experience',
-            company: 'Various',
-            description: data.experience,
-          }
-        ],
+        experiences: data.experience.split('\n\n').filter(e => e.trim()).map((exp, idx) => ({
+          title: idx === 0 ? 'Latest Experience' : `Previous Experience ${idx}`,
+          company: 'Company',
+          description: exp.trim(),
+        })),
         skills: data.skills.split(',').map(s => s.trim()),
-        education: [
-          {
-            school: data.education,
-            degree_name: 'Degree',
-          }
-        ],
+        education: data.education.split('\n\n').filter(e => e.trim()).map((edu, idx) => ({
+          school: edu.trim(),
+          degree_name: 'Degree',
+        })),
         location: data.location,
         connections: data.connections,
         follower_count: data.followers,
@@ -219,11 +215,11 @@ export function LinkedInEvaluationPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="experience">Experience</Label>
+                    <Label htmlFor="experience">Experience (separate items with a blank line)</Label>
                     <Textarea
                       id="experience"
-                      placeholder="List your work experience..."
-                      rows={3}
+                      placeholder="Latest Job...&#10;&#10;Previous Job..."
+                      rows={4}
                       {...manualForm.register('experience')}
                     />
                     {manualForm.formState.errors.experience && (
@@ -248,10 +244,10 @@ export function LinkedInEvaluationPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="education">Education</Label>
+                    <Label htmlFor="education">Education (separate items with a blank line)</Label>
                     <Input
                       id="education"
-                      placeholder="BS Computer Science, University Name"
+                      placeholder="BS Computer Science...&#10;&#10;High School..."
                       {...manualForm.register('education')}
                     />
                     {manualForm.formState.errors.education && (
