@@ -39,6 +39,15 @@ const manualSchema = z.object({
   experience: z.string().min(20, 'Please describe your experience'),
   skills: z.string().min(5, 'Please list at least a few skills'),
   education: z.string().min(10, 'Please describe your education'),
+  location: z.string().min(2, 'Please enter your location'),
+  connections: z.number().min(0, 'Connections cannot be negative'),
+  followers: z.number().min(0, 'Followers cannot be negative'),
+  certifications: z.string().optional(),
+  languages: z.string().optional(),
+  projects: z.string().optional(),
+  hasProfilePic: z.enum(['yes', 'no'], {
+    required_error: 'Please select if you have a profile picture',
+  }),
 })
 
 type LinkedInUrlForm = z.infer<typeof linkedinUrlSchema>
@@ -77,9 +86,29 @@ export function LinkedInEvaluationPage() {
       await submitManualLinkedIn({
         headline: data.headline,
         summary: data.summary,
-        experience: data.experience,
+        experiences: [
+          {
+            title: 'Professional Experience',
+            company: 'Various',
+            description: data.experience,
+          }
+        ],
         skills: data.skills.split(',').map(s => s.trim()),
-        education: data.education,
+        education: [
+          {
+            school: data.education,
+            degree_name: 'Degree',
+          }
+        ],
+        location: data.location,
+        connections: data.connections,
+        follower_count: data.followers,
+        certifications: data.certifications ? data.certifications.split(',').map(c => ({ name: c.trim() })) : [],
+        languages: data.languages ? data.languages.split(',').map(l => ({ name: l.trim() })) : [],
+        accomplishments: {
+          projects: data.projects ? data.projects.split('\n').map(p => ({ title: p.trim() })) : []
+        },
+        has_profile_pic: data.hasProfilePic === 'yes',
       })
       toast.success('LinkedIn profile evaluated successfully!')
       manualForm.reset()
@@ -228,6 +257,108 @@ export function LinkedInEvaluationPage() {
                     {manualForm.formState.errors.education && (
                       <p className="text-sm text-destructive">
                         {manualForm.formState.errors.education.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="location">Location</Label>
+                    <Input
+                      id="location"
+                      placeholder="City, Country"
+                      {...manualForm.register('location')}
+                    />
+                    {manualForm.formState.errors.location && (
+                      <p className="text-sm text-destructive">
+                        {manualForm.formState.errors.location.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="connections">Connections</Label>
+                      <Input
+                        id="connections"
+                        type="number"
+                        placeholder="500"
+                        {...manualForm.register('connections', { valueAsNumber: true })}
+                      />
+                      {manualForm.formState.errors.connections && (
+                        <p className="text-sm text-destructive">
+                          {manualForm.formState.errors.connections.message}
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="followers">Followers</Label>
+                      <Input
+                        id="followers"
+                        type="number"
+                        placeholder="1000"
+                        {...manualForm.register('followers', { valueAsNumber: true })}
+                      />
+                      {manualForm.formState.errors.followers && (
+                        <p className="text-sm text-destructive">
+                          {manualForm.formState.errors.followers.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="certifications">Certifications (comma-separated)</Label>
+                    <Input
+                      id="certifications"
+                      placeholder="AWS Solutions Architect, Google Professional Developer..."
+                      {...manualForm.register('certifications')}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="languages">Languages (comma-separated)</Label>
+                    <Input
+                      id="languages"
+                      placeholder="English (Professional), Arabic (Native)..."
+                      {...manualForm.register('languages')}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="projects">Projects (one per line)</Label>
+                    <Textarea
+                      id="projects"
+                      placeholder="NexusMG SaaS Platform&#10;Portfolio Website..."
+                      rows={2}
+                      {...manualForm.register('projects')}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Do you have a profile picture?</Label>
+                    <div className="flex gap-4 pt-1">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          value="yes"
+                          className="h-4 w-4 border-gray-300 text-primary focus:ring-primary"
+                          {...manualForm.register('hasProfilePic')}
+                        />
+                        <span className="text-sm">Yes</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          value="no"
+                          className="h-4 w-4 border-gray-300 text-primary focus:ring-primary"
+                          {...manualForm.register('hasProfilePic')}
+                        />
+                        <span className="text-sm">No</span>
+                      </label>
+                    </div>
+                    {manualForm.formState.errors.hasProfilePic && (
+                      <p className="text-sm text-destructive">
+                        {manualForm.formState.errors.hasProfilePic.message}
                       </p>
                     )}
                   </div>

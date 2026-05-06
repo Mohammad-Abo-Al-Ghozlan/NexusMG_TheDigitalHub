@@ -135,6 +135,8 @@ Provide analysis in this exact JSON format:
 
 {json.dumps(profile_data, indent=2)}
 
+Note: If "has_profile_pic" is true, the user has confirmed they have a profile picture even if "profile_pic_url" is null (common in manual entry). Do NOT claim the profile is missing a photo in this case.
+
 Provide analysis in this exact JSON format:
 {{
     "completeness_score": <0-100>,
@@ -148,7 +150,14 @@ Provide analysis in this exact JSON format:
 }}"""
         
         response = await self.analyze(prompt, system_prompt)
-        return self._parse_json_response(response, self._default_linkedin_analysis())
+        
+        # Adjust default values based on profile data
+        default_analysis = self._default_linkedin_analysis()
+        if profile_data.get("has_profile_pic") or profile_data.get("profile_pic_url"):
+            default_analysis["recommendations"] = [r for r in default_analysis["recommendations"] if "photo" not in r.lower()]
+            default_analysis["weaknesses"] = [w for w in default_analysis["weaknesses"] if "photo" not in w.lower()]
+            
+        return self._parse_json_response(response, default_analysis)
     
     async def analyze_idea(self, idea: Dict) -> Dict[str, Any]:
         """Analyze a project/startup idea."""

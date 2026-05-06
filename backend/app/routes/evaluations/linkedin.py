@@ -62,11 +62,12 @@ async def analyze_linkedin(
         is_manual = True
     
     if not profile_data:
+        print(f"LinkedIn fetch failed for {data.profile_url}: {fetch_error}")
         evaluation.status = EvaluationStatus.FAILED
         evaluation.feedback = fetch_error or "Could not fetch LinkedIn profile. Please provide manual data."
         await db.commit()
         raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY if fetch_error else status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE if fetch_error else status.HTTP_400_BAD_REQUEST,
             detail=fetch_error or "Could not fetch LinkedIn profile and no manual data provided"
         )
     

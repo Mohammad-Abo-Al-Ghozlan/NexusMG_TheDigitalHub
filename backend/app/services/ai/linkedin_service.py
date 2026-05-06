@@ -69,36 +69,68 @@ class LinkedInService:
                 return {"error": str(e)}
 
     async def _fetch_linkdapi_profile(self, username: str) -> tuple[Optional[Dict[str, Any]], Optional[str]]:
-        headers = {"x-api-key": self.api_key}
-        last_error: Optional[str] = None
-
+        headers = {"X-linkdapi-apikey": self.api_key}
+        
         async with httpx.AsyncClient(timeout=30.0) as client:
-            for path in ("/profile/full", "/profile/overview"):
-                url = f"{self.linkdapi_base_url}{path}"
-                try:
-                    print(f"Fetching LinkdAPI profile from {url} for username: {username}")
-                    response = await client.get(url, headers=headers, params={"username": username})
-                    print(f"LinkdAPI response status: {response.status_code}")
-
-                    if response.status_code == 200:
-                        data = response.json()
-                        if isinstance(data, dict) and (data.get("error") or data.get("errors")):
-                            last_error = f"LinkdAPI error payload: {data}"
-                            print(last_error)
-                            continue
+            # Add Accept header as recommended
+            headers["Accept"] = "application/json"
+            
+            # Step 1: Get URN via /profile/username-to-urn
+            urn_url = f"{self.linkdapi_base_url}/profile/username-to-urn"
+            try:
+                print(f"Fetching LinkdAPI URN lookup: {urn_url}?username={username}")
+                response = await client.get(urn_url, headers=headers, params={"username": username})
+                print(f"LinkdAPI URN lookup response: {response.status_code}")
+                
+                if response.status_code != 200:
+                    # Fallback: Try /profile/overview if username-to-urn fails
+                    overview_url = f"{self.linkdapi_base_url}/profile/overview"
+                    print(f"Falling back to overview lookup: {overview_url}")
+                    response = await client.get(overview_url, headers=headers, params={"username": username})
+                    if response.status_code != 200:
+                        return None, f"Failed to lookup profile URN (Status {response.status_code})"
+                
+                lookup_data = response.json()
+                if not lookup_data.get("success"):
+                    return None, f"LinkdAPI lookup error: {lookup_data.get('message', 'Unknown error')}"
+                
+                profile_urn = lookup_data.get("data", {}).get("urn")
+                if not profile_urn:
+                    # Fallback: Maybe the lookup_data is actually the profile? 
+                    # (Some endpoints return the profile if URN not found but success is True)
+                    if lookup_data.get("data", {}).get("fullName"):
+                        return self._parse_profile(lookup_data), None
+                    return None, "Profile URN not found in response"
+                
+                print(f"Found profile URN: {profile_urn}")
+                
+                # Step 2: Get Full Profile via /profile/full using the URN
+                full_url = f"{self.linkdapi_base_url}/profile/full"
+                print(f"Fetching full LinkdAPI profile using URN: {full_url}?urn={profile_urn}")
+                response = await client.get(full_url, headers=headers, params={"urn": profile_urn})
+                print(f"LinkdAPI full profile response: {response.status_code}")
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get("success"):
                         return self._parse_profile(data), None
+                    else:
+                        print(f"Full profile fetch reported failure: {data.get('message')}")
+                        # Final Attempt: Try /profile/full with username directly
+                        print(f"Final attempt: Direct fetch with username: {username}")
+                        response = await client.get(full_url, headers=headers, params={"username": username})
+                        if response.status_code == 200:
+                            data = response.json()
+                            if data.get("success"):
+                                return self._parse_profile(data), None
+                        
+                        return self._parse_profile(lookup_data), f"Full fetch failed: {data.get('message')}"
+                
+                return self._parse_profile(lookup_data), f"Full profile fetch status {response.status_code}"
 
-                    if response.status_code in {400, 404}:
-                        last_error = f"LinkdAPI responded with {response.status_code} for {url}"
-                        continue
-
-                    last_error = f"LinkdAPI error: {response.status_code} - {response.text}"
-                    print(last_error)
-                except Exception as exc:
-                    last_error = f"LinkdAPI request failed for {url}: {exc}"
-                    print(last_error)
-
-            return None, last_error
+            except Exception as exc:
+                print(f"LinkdAPI fetch exception: {exc}")
+                return None, str(exc)
 
     def _extract_username(self, value: str) -> Optional[str]:
         if not value:
@@ -133,7 +165,8 @@ class LinkedInService:
         # Handle LinkdAPI wrapper if present
         if isinstance(data.get("data"), dict):
             data = data["data"]
-        if isinstance(data.get("person"), dict):
+        # Compatibility with older Proxycurl format or other wrappers
+        elif isinstance(data.get("person"), dict):
             data = data["person"]
 
         person = data
@@ -159,13 +192,13 @@ class LinkedInService:
             "experiences": [
                 {
                     "title": exp.get("title"),
-                    "company": exp.get("company") or exp.get("companyName"),
+                    "company": exp.get("company") or exp.get("companyName") or exp.get("name"),
                     "location": exp.get("location"),
                     "starts_at": exp.get("starts_at") or exp.get("startDate"),
                     "ends_at": exp.get("ends_at") or exp.get("endDate"),
                     "description": exp.get("description")
                 }
-                for exp in (person.get("experiences") or person.get("positions") or person.get("experience") or [])
+                for exp in (person.get("experiences") or person.get("positions") or person.get("experience") or person.get("CurrentPositions") or [])
             ],
             "education": [
                 {
@@ -206,6 +239,7 @@ class LinkedInService:
             "country": data.get("country", ""),
             "industry": data.get("industry", ""),
             "profile_pic_url": None,
+            "has_profile_pic": data.get("has_profile_pic", False),
             "public_identifier": None,
             "connections": data.get("connections", 0),
             "follower_count": data.get("follower_count", 0),
@@ -217,17 +251,27 @@ class LinkedInService:
             "accomplishments": data.get("accomplishments", {}),
             "is_manual_entry": True
         }
-    
     def calculate_profile_completeness(self, profile: Dict[str, Any]) -> Dict[str, Any]:
         """Calculate profile completeness score."""
+        # For manual entries with a single bundled experience, count length/paragraphs as proxy for multiple items
+        experiences = profile.get("experiences", [])
+        exp_score = min(20, len(experiences) * 5)
+        if len(experiences) == 1 and profile.get("is_manual_entry"):
+            desc = experiences[0].get("description", "")
+            # Give points for content length in manual entry
+            if len(desc) > 200: exp_score = 20
+            elif len(desc) > 100: exp_score = 10
+            
         scores = {
-            "has_photo": 10 if profile.get("profile_pic_url") else 0,
+            "has_photo": 10 if (profile.get("profile_pic_url") or profile.get("has_profile_pic")) else 0,
             "has_headline": 10 if profile.get("headline") else 0,
             "has_summary": 15 if profile.get("summary") else 0,
-            "has_experience": min(20, len(profile.get("experiences", [])) * 5),
+            "has_experience": exp_score,
             "has_education": min(15, len(profile.get("education", [])) * 5),
             "has_skills": min(15, len(profile.get("skills", [])) * 3),
-            "has_certifications": min(10, len(profile.get("certifications", [])) * 5),
+            "has_location": 5 if profile.get("location") else 0,
+            "has_connections": 10 if (profile.get("connections", 0) or 0) > 0 else 0,
+            "has_certifications": min(5, len(profile.get("certifications", [])) * 5),
             "has_languages": min(5, len(profile.get("languages", [])) * 2)
         }
         
