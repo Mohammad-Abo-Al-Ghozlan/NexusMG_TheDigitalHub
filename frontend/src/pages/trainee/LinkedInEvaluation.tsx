@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useEvaluationStore } from '@/stores/evaluationStore'
@@ -24,6 +24,7 @@ import {
   Briefcase,
   Award,
   FileEdit,
+  Trash2,
 } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 
@@ -36,7 +37,12 @@ const linkedinUrlSchema = z.object({
 const manualSchema = z.object({
   headline: z.string().min(10, 'Headline must be at least 10 characters'),
   summary: z.string().min(50, 'Summary must be at least 50 characters'),
-  experience: z.string().min(20, 'Please describe your experience'),
+  experiences: z.array(z.object({
+    title: z.string().min(2, 'Title is required'),
+    company: z.string().min(2, 'Company is required'),
+    location: z.string().optional(),
+    description: z.string().min(10, 'Description must be at least 10 characters'),
+  })).min(1, 'Please add at least one experience'),
   skills: z.string().min(5, 'Please list at least a few skills'),
   education: z.string().min(10, 'Please describe your education'),
   location: z.string().min(2, 'Please enter your location'),
@@ -44,7 +50,10 @@ const manualSchema = z.object({
   followers: z.number().min(0, 'Followers cannot be negative'),
   certifications: z.string().optional(),
   languages: z.string().optional(),
-  projects: z.string().optional(),
+  projects: z.array(z.object({
+    title: z.string().min(2, 'Title is required'),
+    description: z.string().min(10, 'Description must be at least 10 characters'),
+  })).optional(),
   hasProfilePic: z.enum(['yes', 'no'], {
     required_error: 'Please select if you have a profile picture',
   }),
@@ -63,6 +72,22 @@ export function LinkedInEvaluationPage() {
 
   const manualForm = useForm<ManualForm>({
     resolver: zodResolver(manualSchema),
+    defaultValues: {
+      experiences: [{ title: '', company: '', location: '', description: '' }],
+      projects: [{ title: '', description: '' }],
+      connections: 0,
+      followers: 0,
+    }
+  })
+
+  const { fields: expFields, append: appendExp, remove: removeExp } = useFieldArray({
+    control: manualForm.control,
+    name: 'experiences'
+  })
+
+  const { fields: projFields, append: appendProj, remove: removeProj } = useFieldArray({
+    control: manualForm.control,
+    name: 'projects'
   })
 
   useEffect(() => {
@@ -83,23 +108,12 @@ export function LinkedInEvaluationPage() {
 
   const onManualSubmit = async (data: ManualForm) => {
     try {
-      // Robust splitting: try double newlines first, then single newlines
-      const splitText = (text: string) => {
-        const blocks = text.split(/\n{2,}/).filter(b => b.trim());
-        if (blocks.length > 1) return blocks;
-        return text.split('\n').filter(b => b.trim() && b.length > 5);
-      };
-
       await submitManualLinkedIn({
         headline: data.headline,
         summary: data.summary,
-        experiences: splitText(data.experience).map((exp, idx) => ({
-          title: idx === 0 ? 'Professional Experience' : `Experience ${idx + 1}`,
-          company: 'Company',
-          description: exp.trim(),
-        })),
+        experiences: data.experiences,
         skills: data.skills.split(',').map(s => s.trim()),
-        education: splitText(data.education).map((edu, idx) => ({
+        education: data.education.split('\n').filter(e => e.trim()).map((edu) => ({
           school: edu.trim(),
           degree_name: 'Degree',
         })),
@@ -109,7 +123,7 @@ export function LinkedInEvaluationPage() {
         certifications: data.certifications ? data.certifications.split(',').map(c => ({ name: c.trim() })) : [],
         languages: data.languages ? data.languages.split(',').map(l => ({ name: l.trim() })) : [],
         accomplishments: {
-          projects: data.projects ? data.projects.split('\n').map(p => ({ title: p.trim() })) : []
+          projects: data.projects || []
         },
         has_profile_pic: data.hasProfilePic === 'yes',
       })
@@ -143,7 +157,7 @@ export function LinkedInEvaluationPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Input Section */}
-        <Card>
+        <Card className="h-fit">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Linkedin className="h-5 w-5 text-[#0077B5]" />
@@ -191,151 +205,196 @@ export function LinkedInEvaluationPage() {
               </TabsContent>
 
               <TabsContent value="manual" className="mt-4">
-                <form onSubmit={manualForm.handleSubmit(onManualSubmit)} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="headline">Professional Headline</Label>
-                    <Input
-                      id="headline"
-                      placeholder="Software Engineer at Company"
-                      {...manualForm.register('headline')}
-                    />
-                    {manualForm.formState.errors.headline && (
-                      <p className="text-sm text-destructive">
-                        {manualForm.formState.errors.headline.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="summary">About / Summary</Label>
-                    <Textarea
-                      id="summary"
-                      placeholder="Write a brief professional summary..."
-                      rows={3}
-                      {...manualForm.register('summary')}
-                    />
-                    {manualForm.formState.errors.summary && (
-                      <p className="text-sm text-destructive">
-                        {manualForm.formState.errors.summary.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="experience">Experience (separate items with a blank line)</Label>
-                    <Textarea
-                      id="experience"
-                      placeholder="Latest Job...&#10;&#10;Previous Job..."
-                      rows={4}
-                      {...manualForm.register('experience')}
-                    />
-                    {manualForm.formState.errors.experience && (
-                      <p className="text-sm text-destructive">
-                        {manualForm.formState.errors.experience.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="skills">Skills (comma-separated)</Label>
-                    <Input
-                      id="skills"
-                      placeholder="Python, JavaScript, React, Node.js..."
-                      {...manualForm.register('skills')}
-                    />
-                    {manualForm.formState.errors.skills && (
-                      <p className="text-sm text-destructive">
-                        {manualForm.formState.errors.skills.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="education">Education (one per line or separate with blank lines)</Label>
-                    <Textarea
-                      id="education"
-                      placeholder="BS Computer Science...&#10;High School..."
-                      rows={3}
-                      {...manualForm.register('education')}
-                    />
-                    {manualForm.formState.errors.education && (
-                      <p className="text-sm text-destructive">
-                        {manualForm.formState.errors.education.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="location">Location</Label>
-                    <Input
-                      id="location"
-                      placeholder="City, Country"
-                      {...manualForm.register('location')}
-                    />
-                    {manualForm.formState.errors.location && (
-                      <p className="text-sm text-destructive">
-                        {manualForm.formState.errors.location.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
+                <form onSubmit={manualForm.handleSubmit(onManualSubmit)} className="space-y-6">
+                  {/* Basic Info */}
+                  <div className="space-y-4 rounded-lg border p-4 bg-muted/30">
+                    <h3 className="font-semibold text-sm flex items-center gap-2 border-b pb-2">
+                      <Users className="h-4 w-4 text-primary" /> Basic Information
+                    </h3>
                     <div className="space-y-2">
-                      <Label htmlFor="connections">Connections</Label>
+                      <Label htmlFor="headline">Professional Headline</Label>
                       <Input
-                        id="connections"
-                        type="number"
-                        placeholder="500"
-                        {...manualForm.register('connections', { valueAsNumber: true })}
+                        id="headline"
+                        placeholder="Software Engineer at Company"
+                        {...manualForm.register('headline')}
                       />
-                      {manualForm.formState.errors.connections && (
-                        <p className="text-sm text-destructive">
-                          {manualForm.formState.errors.connections.message}
-                        </p>
+                      {manualForm.formState.errors.headline && (
+                        <p className="text-sm text-destructive">{manualForm.formState.errors.headline.message}</p>
                       )}
                     </div>
+
                     <div className="space-y-2">
-                      <Label htmlFor="followers">Followers</Label>
-                      <Input
-                        id="followers"
-                        type="number"
-                        placeholder="1000"
-                        {...manualForm.register('followers', { valueAsNumber: true })}
+                      <Label htmlFor="summary">About / Summary</Label>
+                      <Textarea
+                        id="summary"
+                        placeholder="Write a brief professional summary..."
+                        rows={3}
+                        {...manualForm.register('summary')}
                       />
-                      {manualForm.formState.errors.followers && (
-                        <p className="text-sm text-destructive">
-                          {manualForm.formState.errors.followers.message}
-                        </p>
+                      {manualForm.formState.errors.summary && (
+                        <p className="text-sm text-destructive">{manualForm.formState.errors.summary.message}</p>
                       )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="location">Location</Label>
+                      <Input
+                        id="location"
+                        placeholder="City, Country"
+                        {...manualForm.register('location')}
+                      />
+                      {manualForm.formState.errors.location && (
+                        <p className="text-sm text-destructive">{manualForm.formState.errors.location.message}</p>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="connections">Connections</Label>
+                        <Input
+                          id="connections"
+                          type="number"
+                          placeholder="500"
+                          {...manualForm.register('connections', { valueAsNumber: true })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="followers">Followers</Label>
+                        <Input
+                          id="followers"
+                          type="number"
+                          placeholder="1000"
+                          {...manualForm.register('followers', { valueAsNumber: true })}
+                        />
+                      </div>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="certifications">Certifications (comma-separated)</Label>
-                    <Input
-                      id="certifications"
-                      placeholder="AWS Solutions Architect, Google Professional Developer..."
-                      {...manualForm.register('certifications')}
-                    />
+                  {/* Experience Section */}
+                  <div className="space-y-4 rounded-lg border p-4 bg-muted/30">
+                    <div className="flex justify-between items-center border-b pb-2">
+                      <h3 className="font-semibold text-sm flex items-center gap-2">
+                        <Briefcase className="h-4 w-4 text-primary" /> Experience
+                      </h3>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => appendExp({ title: '', company: '', location: '', description: '' })}
+                      >
+                        Add Experience
+                      </Button>
+                    </div>
+
+                    {expFields.map((field, index) => (
+                      <div key={field.id} className="space-y-3 p-3 border rounded bg-background/50 relative group">
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="icon" 
+                          className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => removeExp(index)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Job Title</Label>
+                            <Input placeholder="e.g. Senior Dev" {...manualForm.register(`experiences.${index}.title`)} />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Company</Label>
+                            <Input placeholder="e.g. Tech Corp" {...manualForm.register(`experiences.${index}.company`)} />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Description</Label>
+                          <Textarea 
+                            placeholder="Key responsibilities and achievements..." 
+                            rows={2}
+                            {...manualForm.register(`experiences.${index}.description`)} 
+                          />
+                        </div>
+                      </div>
+                    ))}
+                    {manualForm.formState.errors.experiences && (
+                      <p className="text-sm text-destructive">{manualForm.formState.errors.experiences.message}</p>
+                    )}
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="languages">Languages (comma-separated)</Label>
-                    <Input
-                      id="languages"
-                      placeholder="English (Professional), Arabic (Native)..."
-                      {...manualForm.register('languages')}
-                    />
+                  {/* Skills & Others */}
+                  <div className="space-y-4 rounded-lg border p-4 bg-muted/30">
+                    <h3 className="font-semibold text-sm flex items-center gap-2 border-b pb-2">
+                      <Award className="h-4 w-4 text-primary" /> Skills & Education
+                    </h3>
+                    <div className="space-y-2">
+                      <Label htmlFor="skills">Skills (comma-separated)</Label>
+                      <Input
+                        id="skills"
+                        placeholder="Python, JavaScript, React, Node.js..."
+                        {...manualForm.register('skills')}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="education">Education (one per line)</Label>
+                      <Textarea
+                        id="education"
+                        placeholder="BS Computer Science at Uni...&#10;High School..."
+                        rows={2}
+                        {...manualForm.register('education')}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="certifications">Certifications (comma-separated)</Label>
+                      <Input
+                        id="certifications"
+                        placeholder="AWS Solutions Architect, Google Professional Developer..."
+                        {...manualForm.register('certifications')}
+                      />
+                    </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="projects">Projects (one per line)</Label>
-                    <Textarea
-                      id="projects"
-                      placeholder="NexusMG SaaS Platform&#10;Portfolio Website..."
-                      rows={2}
-                      {...manualForm.register('projects')}
-                    />
+                  {/* Projects Section */}
+                  <div className="space-y-4 rounded-lg border p-4 bg-muted/30">
+                    <div className="flex justify-between items-center border-b pb-2">
+                      <h3 className="font-semibold text-sm flex items-center gap-2">
+                        <Lightbulb className="h-4 w-4 text-primary" /> Projects
+                      </h3>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => appendProj({ title: '', description: '' })}
+                      >
+                        Add Project
+                      </Button>
+                    </div>
+
+                    {projFields.map((field, index) => (
+                      <div key={field.id} className="space-y-3 p-3 border rounded bg-background/50 relative group">
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="icon" 
+                          className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => removeProj(index)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Project Title</Label>
+                          <Input placeholder="e.g. NexusMG SaaS" {...manualForm.register(`projects.${index}.title`)} />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Project Description</Label>
+                          <Textarea 
+                            placeholder="What does it do? Technologies used?" 
+                            rows={2}
+                            {...manualForm.register(`projects.${index}.description`)} 
+                          />
+                        </div>
+                      </div>
+                    ))}
                   </div>
 
                   <div className="space-y-2">
@@ -360,11 +419,6 @@ export function LinkedInEvaluationPage() {
                         <span className="text-sm">No</span>
                       </label>
                     </div>
-                    {manualForm.formState.errors.hasProfilePic && (
-                      <p className="text-sm text-destructive">
-                        {manualForm.formState.errors.hasProfilePic.message}
-                      </p>
-                    )}
                   </div>
 
                   <Button type="submit" className="w-full" loading={linkedinLoading}>

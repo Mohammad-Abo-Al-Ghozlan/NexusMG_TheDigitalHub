@@ -135,7 +135,12 @@ Provide analysis in this exact JSON format:
 
 {json.dumps(profile_data, indent=2)}
 
-Note: If "has_profile_pic" is true, the user has confirmed they have a profile picture even if "profile_pic_url" is null (common in manual entry). Do NOT claim the profile is missing a photo in this case.
+        CRITICAL INSTRUCTIONS:
+        0. PARTIAL DATA: If "is_partial_fetch" is true, it means the API could not retrieve all data (especially experiences). DO NOT penalize the user for this. Instead, focus on the available data and suggest manual entry for a full review.
+        1. PHOTO: If "has_profile_pic" is true, the user HAS a profile picture. Do NOT say it is missing. If both "has_profile_pic" is false and "profile_pic_url" is null, gently mention that adding a photo increases engagement, but do not call it a "notable weakness" if other parts are strong.
+        2. EXPERIENCE: If the "experiences" array is empty, it is likely a data-fetching limitation. DO NOT state that the user has no experience or that it's a "notable weakness". Instead, state that detailed experience data couldn't be retrieved and suggest the user ensure their profile is public or use manual entry.
+        3. ENGAGEMENT: If no activity/posts are present, do NOT claim the user is inactive. Assume activity data is restricted by the API.
+        4. ACCURACY: Focus on the data that IS present (Headline, Summary, Skills).
 
 Provide analysis in this exact JSON format:
 {{

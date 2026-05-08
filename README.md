@@ -40,7 +40,7 @@ NexusMG operates as a centralized scoring engine:
 *   **Database:** MariaDB for persistent scoring history and user metrics.
 *   **Intelligence:** 
     *   **Groq/Gemini:** Used for high-speed analysis of codebases and interview transcripts.
-    *   **Proxycurl:** Real-time professional data retrieval from LinkedIn.
+    *   **LinkdAPI / Proxycurl:** Real-time professional data retrieval from LinkedIn.
 
 ## 📂 Project Structure
 ```text
@@ -66,7 +66,10 @@ NexusMG_TheDigitalHub/
 │   ├── public/             # Static Assets
 │   └── package.json
 ├── components/             # Shared UI Components (Root level)
-├── docs/                   # Documentation
+├── docs/                   # Advanced Documentation
+│   ├── frontend.md         # Frontend Architecture & Design
+│   ├── backend.md          # Backend Infrastructure & AI Pipeline
+│   ├── project.md          # Global Project Overview & Roadmap
 │   └── api_routes.md       # API Endpoint Reference
 ├── hooks/                  # Custom React Hooks
 ├── lib/                    # Shared Utilities
