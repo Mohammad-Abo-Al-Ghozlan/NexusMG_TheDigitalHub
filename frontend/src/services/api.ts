@@ -54,6 +54,9 @@ export const userApi = {
   getAll: () => api.get('/users/trainees'), // Match backend: list_all_trainees
   getById: (id: string) => api.get(`/users/trainees/${id}`),
   exportMyData: () => api.get('/users/me/export', { responseType: 'blob' }),
+  getOnboardingQuestions: () => api.get('/users/me/onboarding-questions'),
+  submitOnboarding: (data: { answers: { question_id: string; answer: string }[] }) =>
+    api.post('/users/me/onboard', data),
 }
 
 // CV Evaluation API

@@ -20,6 +20,8 @@ class User(Base):
     full_name = Column(String(255), nullable=False)
     role = Column(Enum(UserRole), default=UserRole.TRAINEE, nullable=False)
     is_active = Column(Boolean, default=True)
+    is_onboarded = Column(Boolean, default=False)
+    onboarding_summary = Column(Text, nullable=True)
     
     # Profile fields
     avatar_url = Column(String(500), nullable=True)

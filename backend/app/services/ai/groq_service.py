@@ -340,6 +340,46 @@ Provide analysis in this exact JSON format:
         response = await self.analyze(prompt, system_prompt)
         return self._parse_json_response(response, self._default_readiness_summary())
     
+    async def generate_onboarding_questions(self) -> List[Dict]:
+        """Generate dynamic onboarding questions for a new trainee."""
+        system_prompt = """You are an expert tech career advisor. 
+        Generate 3 high-value questions to understand a junior/mid developer's career goals and current tech stack.
+        Always respond in valid JSON format."""
+        
+        prompt = """Generate 3 onboarding questions.
+        Provide them in this exact JSON format:
+        {
+            "questions": [
+                {
+                    "id": "q1",
+                    "text": "The question text",
+                    "type": "text"
+                }
+            ]
+        }"""
+        
+        response = await self.analyze(prompt, system_prompt)
+        result = self._parse_json_response(response, {"questions": self._default_onboarding_questions()})
+        return result.get("questions", [])
+
+    async def analyze_onboarding_answers(self, answers: List[Dict]) -> Dict[str, Any]:
+        """Analyze onboarding answers to establish a baseline profile."""
+        system_prompt = """You are an expert career coach. 
+        Analyze the trainee's answers to understand their background and goals.
+        Always respond in valid JSON format."""
+        
+        prompt = f"""Analyze these onboarding answers:
+        {json.dumps(answers, indent=2)}
+
+        Provide analysis in this exact JSON format:
+        {{
+            "summary": "A short 2-3 sentence summary of the candidate's profile.",
+            "estimated_baseline_score": <0-100>
+        }}"""
+        
+        response = await self.analyze(prompt, system_prompt)
+        return self._parse_json_response(response, self._default_onboarding_analysis())
+    
     def _parse_json_response(self, response: str, default: Dict) -> Dict:
         """Parse JSON from LLM response."""
         try:
@@ -497,6 +537,31 @@ Provide analysis in this exact JSON format:
             "recommendations": ["Complete all assessments"],
             "career_suggestions": ["Junior Developer", "Technical Support"],
             "summary": "You are making good progress on your developer journey."
+        }
+
+    def _default_onboarding_questions(self) -> List[Dict]:
+        return [
+            {
+                "id": "q1",
+                "text": "What are your primary career goals for the next year?",
+                "type": "text"
+            },
+            {
+                "id": "q2",
+                "text": "What programming languages and frameworks are you most comfortable with?",
+                "type": "text"
+            },
+            {
+                "id": "q3",
+                "text": "What areas of software development do you feel you need to improve the most?",
+                "type": "text"
+            }
+        ]
+
+    def _default_onboarding_analysis(self) -> Dict:
+        return {
+            "summary": "The candidate is a junior developer looking to establish a solid foundation in web technologies and improve their system design skills.",
+            "estimated_baseline_score": 30
         }
 
 

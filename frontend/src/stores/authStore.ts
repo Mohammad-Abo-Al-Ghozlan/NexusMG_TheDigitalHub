@@ -9,6 +9,7 @@ export interface User {
   role: 'trainee' | 'instructor' | 'admin'
   avatar_url?: string
   created_at: string
+  is_onboarded: boolean
 }
 
 interface AuthState {

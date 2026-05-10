@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, List, Dict
 from datetime import datetime
 from app.models.user import UserRole
 
@@ -44,6 +44,8 @@ class UserResponse(UserBase):
     linkedin_url: Optional[str] = None
     created_at: datetime
     instructor_id: Optional[int] = None
+    is_onboarded: bool = False
+    onboarding_summary: Optional[str] = None
     
     class Config:
         from_attributes = True
@@ -83,3 +85,23 @@ class InstructorInviteResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+
+class OnboardingQuestion(BaseModel):
+    id: str
+    text: str
+    type: str = "text" # e.g. text, select
+    options: Optional[List[str]] = None
+
+
+class OnboardingQuestionsResponse(BaseModel):
+    questions: List[OnboardingQuestion]
+
+
+class OnboardingAnswer(BaseModel):
+    question_id: str
+    answer: str
+
+
+class OnboardingSubmission(BaseModel):
+    answers: List[OnboardingAnswer]

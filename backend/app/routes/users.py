@@ -14,8 +14,9 @@ from app.models.readiness import ReadinessScore
 from app.models.evaluation import Evaluation
 from fastapi.responses import StreamingResponse
 from app.utils.pdf_generator import generate_trainee_report_pdf
-from app.schemas.user import UserResponse, UserUpdate, PasswordUpdate
+from app.schemas.user import UserResponse, UserUpdate, PasswordUpdate, OnboardingQuestionsResponse, OnboardingSubmission
 from app.schemas.evaluation import ReadinessScoreResponse
+from app.services.ai.groq_service import groq_service
 from app.services.auth import get_current_user, get_current_instructor, get_current_admin, hash_password, verify_password
 from app.services.readiness import calculate_overall_readiness, generate_readiness_summary
 from app.config import settings
@@ -255,6 +256,78 @@ async def get_trainee_readiness(
         await db.refresh(readiness)
     
     return readiness
+
+
+@router.get("/me/onboarding-questions", response_model=OnboardingQuestionsResponse)
+async def get_onboarding_questions(current_user: User = Depends(get_current_user)):
+    """Get AI-generated onboarding questions."""
+    if current_user.is_onboarded:
+        raise HTTPException(status_code=400, detail="User is already onboarded")
+        
+    questions = await groq_service.generate_onboarding_questions()
+    return OnboardingQuestionsResponse(questions=questions)
+
+
+@router.post("/me/onboard", response_model=UserResponse)
+async def submit_onboarding(
+    submission: OnboardingSubmission,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Submit onboarding answers and establish baseline."""
+    if current_user.is_onboarded:
+        raise HTTPException(status_code=400, detail="User is already onboarded")
+        
+    # Convert submission to a list of dicts for the AI service
+    answers = [ans.model_dump() for ans in submission.answers]
+    
+    # Analyze answers
+    analysis = await groq_service.analyze_onboarding_answers(answers)
+    
+    # Update user profile
+    current_user.is_onboarded = True
+    current_user.onboarding_summary = analysis.get("summary", "")
+    
+    # Create or update an initial readiness score
+    baseline_score = float(analysis.get("estimated_baseline_score", 0))
+    
+    score_result = await db.execute(select(ReadinessScore).where(ReadinessScore.user_id == current_user.id))
+    existing_score = score_result.scalar_one_or_none()
+    
+    if existing_score:
+        if not existing_score.cv_completed:
+            existing_score.cv_score = baseline_score
+        if not existing_score.github_completed:
+            existing_score.github_score = baseline_score
+        if not existing_score.linkedin_completed:
+            existing_score.linkedin_score = baseline_score
+        if not existing_score.interview_completed:
+            existing_score.interview_score = baseline_score
+        if not existing_score.english_completed:
+            existing_score.english_score = baseline_score
+        if not existing_score.idea_completed:
+            existing_score.idea_score = baseline_score
+            
+        # Re-calculate overall score if needed, or leave it to the calculate_overall_readiness service
+        from app.services.readiness import calculate_overall_readiness
+        await calculate_overall_readiness(current_user.id, db)
+    else:
+        initial_score = ReadinessScore(
+            user_id=current_user.id,
+            overall_score=baseline_score,
+            github_score=baseline_score,
+            cv_score=baseline_score,
+            linkedin_score=baseline_score,
+            interview_score=baseline_score,
+            english_score=baseline_score,
+            idea_score=baseline_score
+        )
+        db.add(initial_score)
+    
+    await db.commit()
+    await db.refresh(current_user)
+    
+    return current_user
 
 
 @router.post("/trainees/{trainee_id}/assign/{instructor_id}", response_model=UserResponse)

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: May 04, 2026 at 12:44 PM
+-- Generation Time: May 11, 2026 at 12:58 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -31,6 +31,13 @@ CREATE TABLE `alembic_version` (
   `version_num` varchar(32) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `alembic_version`
+--
+
+INSERT INTO `alembic_version` (`version_num`) VALUES
+('7a3c0a1d9e2f');
+
 -- --------------------------------------------------------
 
 --
@@ -51,6 +58,10 @@ CREATE TABLE `cv_evaluations` (
   `experience_score` float DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `cv_evaluations`
+--
+
 -- --------------------------------------------------------
 
 --
@@ -68,6 +79,10 @@ CREATE TABLE `english_evaluations` (
   `fluency_score` float DEFAULT NULL,
   `comprehension_score` float DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `english_evaluations`
+--
 
 -- --------------------------------------------------------
 
@@ -89,6 +104,10 @@ CREATE TABLE `evaluations` (
   `created_at` datetime DEFAULT current_timestamp(),
   `completed_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `evaluations`
+--
 
 -- --------------------------------------------------------
 
@@ -230,7 +249,10 @@ CREATE TABLE `users` (
   `linkedin_url` varchar(500) DEFAULT NULL,
   `created_at` datetime DEFAULT current_timestamp(),
   `updated_at` datetime DEFAULT NULL,
-  `instructor_id` int(11) DEFAULT NULL
+  `instructor_id` int(11) DEFAULT NULL,
+  `avatar_url` varchar(500) DEFAULT NULL,
+  `is_onboarded` tinyint(1) DEFAULT 0,
+  `onboarding_summary` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -333,31 +355,31 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `cv_evaluations`
 --
 ALTER TABLE `cv_evaluations`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `english_evaluations`
 --
 ALTER TABLE `english_evaluations`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `evaluations`
 --
 ALTER TABLE `evaluations`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=50;
 
 --
 -- AUTO_INCREMENT for table `github_evaluations`
 --
 ALTER TABLE `github_evaluations`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `idea_evaluations`
 --
 ALTER TABLE `idea_evaluations`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `instructor_invites`
@@ -369,25 +391,25 @@ ALTER TABLE `instructor_invites`
 -- AUTO_INCREMENT for table `interview_evaluations`
 --
 ALTER TABLE `interview_evaluations`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `linkedin_evaluations`
 --
 ALTER TABLE `linkedin_evaluations`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `readiness_scores`
 --
 ALTER TABLE `readiness_scores`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- Constraints for dumped tables

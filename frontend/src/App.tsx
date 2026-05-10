@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/authStore'
 // Layouts
 import { PublicLayout } from '@/layouts/PublicLayout'
 import { DashboardLayout } from '@/layouts/DashboardLayout'
+import { OnboardingGuard } from '@/components/guards/OnboardingGuard'
 
 // Public Pages
 import { LandingPage } from '@/pages/public/LandingPage'
@@ -14,6 +15,7 @@ import { LoginPage } from '@/pages/auth/LoginPage'
 import { RegisterPage } from '@/pages/auth/RegisterPage'
 
 // Trainee Pages
+import { Onboarding } from '@/pages/trainee/Onboarding'
 import { TraineeDashboard } from '@/pages/trainee/Dashboard'
 import { CVEvaluationPage } from '@/pages/trainee/CVEvaluation'
 import { GitHubEvaluationPage } from '@/pages/trainee/GitHubEvaluation'
@@ -77,21 +79,24 @@ export default function App() {
 
         {/* Trainee Routes */}
         <Route
-          path="/dashboard"
           element={
             <ProtectedRoute allowedRoles={['trainee']}>
-              <DashboardLayout />
+              <OnboardingGuard />
             </ProtectedRoute>
           }
         >
-          <Route index element={<TraineeDashboard />} />
-          <Route path="cv" element={<CVEvaluationPage />} />
-          <Route path="github" element={<GitHubEvaluationPage />} />
-          <Route path="linkedin" element={<LinkedInEvaluationPage />} />
-          <Route path="idea" element={<IdeaEvaluationPage />} />
-          <Route path="interview" element={<InterviewPage />} />
-          <Route path="english" element={<EnglishAssessmentPage />} />
-          <Route path="profile" element={<ProfilePage />} />
+          <Route path="/onboarding" element={<Onboarding />} />
+          
+          <Route path="/dashboard" element={<DashboardLayout />}>
+            <Route index element={<TraineeDashboard />} />
+            <Route path="cv" element={<CVEvaluationPage />} />
+            <Route path="github" element={<GitHubEvaluationPage />} />
+            <Route path="linkedin" element={<LinkedInEvaluationPage />} />
+            <Route path="idea" element={<IdeaEvaluationPage />} />
+            <Route path="interview" element={<InterviewPage />} />
+            <Route path="english" element={<EnglishAssessmentPage />} />
+            <Route path="profile" element={<ProfilePage />} />
+          </Route>
         </Route>
 
         {/* Instructor Routes */}
