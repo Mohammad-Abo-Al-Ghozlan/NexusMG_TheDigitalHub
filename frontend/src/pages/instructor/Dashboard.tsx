@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { instructorApi } from '@/services/api'
+import { toast } from 'sonner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -16,6 +17,7 @@ import {
   BarChart3,
   UserPlus,
   Clock,
+  Download,
 } from 'lucide-react'
 
 interface Analytics {
@@ -58,6 +60,7 @@ export function InstructorDashboard() {
   const [analytics, setAnalytics] = useState<Analytics | null>(null)
   const [trainees, setTrainees] = useState<Trainee[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isExportingAll, setIsExportingAll] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -76,6 +79,28 @@ export function InstructorDashboard() {
     }
     fetchData()
   }, [])
+
+  const handleExportAll = async (format: 'pdf' | 'csv') => {
+    setIsExportingAll(true)
+    try {
+      const response = await instructorApi.exportAll(format)
+      const blob = response.data instanceof Blob ? response.data : new Blob([response.data])
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `all_trainees_report.${format}`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+      toast.success(`Report exported as ${format.toUpperCase()}`)
+    } catch (error: any) {
+      console.error('Export failed:', error)
+      toast.error('Failed to export report')
+    } finally {
+      setIsExportingAll(false)
+    }
+  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -99,19 +124,29 @@ export function InstructorDashboard() {
   return (
     <div className="space-y-8 animate-fade-up">
       {/* Welcome Section */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold">Instructor Dashboard</h1>
           <p className="mt-2 text-muted-foreground">
             Welcome back, {user?.full_name}. Monitor your trainees&apos; progress.
           </p>
         </div>
-        <Link to="/instructor/trainees">
-          <Button>
-            <UserPlus className="mr-2 h-4 w-4" />
-            Invite Trainee
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => handleExportAll('csv')} disabled={isExportingAll || trainees.length === 0}>
+            <Download className="mr-2 h-4 w-4" />
+            Export CSV
           </Button>
-        </Link>
+          <Button variant="outline" onClick={() => handleExportAll('pdf')} disabled={isExportingAll || trainees.length === 0}>
+            <Download className="mr-2 h-4 w-4" />
+            Export PDF
+          </Button>
+          <Link to="/instructor/trainees">
+            <Button>
+              <UserPlus className="mr-2 h-4 w-4" />
+              Invite Trainee
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Stats Cards */}

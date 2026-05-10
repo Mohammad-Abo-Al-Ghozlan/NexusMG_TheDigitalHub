@@ -12,6 +12,7 @@ For developers, NexusMG is a **pre-flight check** before hitting the job market.
 *   **ATS-Engine Audit:** Grades CVs against modern recruitment algorithms to ensure they aren't discarded by automated filters.
 *   **System Design Evaluator:** Validates project architectures for scalability and best practices.
 *   **Linguistic & Technical Stress Tests:** Evaluates English proficiency and technical articulation via AI-driven mock interviews.
+*   **Comprehensive Reporting & Analytics:** Generates professional, downloadable PDF and CSV performance reports for both individual trainees and instructors managing cohorts.
 
 ## ⚙️ How It Works: The Evaluation Pipeline
 NexusMG operates as a centralized scoring engine:

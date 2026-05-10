@@ -11,6 +11,9 @@ import aiofiles
 from app.database import get_db
 from app.models.user import User, UserRole
 from app.models.readiness import ReadinessScore
+from app.models.evaluation import Evaluation
+from fastapi.responses import StreamingResponse
+from app.utils.pdf_generator import generate_trainee_report_pdf
 from app.schemas.user import UserResponse, UserUpdate, PasswordUpdate
 from app.schemas.evaluation import ReadinessScoreResponse
 from app.services.auth import get_current_user, get_current_instructor, get_current_admin, hash_password, verify_password
@@ -154,6 +157,32 @@ async def recalculate_readiness_summary(
     await db.refresh(readiness)
 
     return readiness
+
+
+@router.get("/me/export")
+async def export_my_report(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Export current trainee's report as PDF."""
+    if current_user.role != UserRole.TRAINEE:
+        raise HTTPException(status_code=403, detail="Only trainees can export their own reports")
+        
+    score_res = await db.execute(select(ReadinessScore).where(ReadinessScore.user_id == current_user.id))
+    score = score_res.scalar_one_or_none()
+    
+    evals_res = await db.execute(
+        select(Evaluation).where(Evaluation.user_id == current_user.id).order_by(Evaluation.created_at.desc())
+    )
+    evaluations = evals_res.scalars().all()
+    
+    pdf_buffer = generate_trainee_report_pdf(current_user, score, evaluations)
+    
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": "attachment; filename=my_report.pdf"}
+    )
 
 
 @router.get("/trainees", response_model=List[UserResponse])

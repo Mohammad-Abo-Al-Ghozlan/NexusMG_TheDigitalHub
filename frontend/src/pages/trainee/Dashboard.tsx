@@ -1,7 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { useEvaluationStore } from '@/stores/evaluationStore'
+import { userApi } from '@/services/api'
+import { toast } from 'sonner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -17,6 +19,7 @@ import {
   TrendingUp,
   Clock,
   CheckCircle2,
+  Download,
 } from 'lucide-react'
 
 const modules = [
@@ -79,10 +82,33 @@ const modules = [
 export function TraineeDashboard() {
   const { user } = useAuthStore()
   const { readinessScore, fetchReadinessScore, readinessLoading } = useEvaluationStore()
+  const [isExporting, setIsExporting] = useState(false)
 
   useEffect(() => {
     fetchReadinessScore()
   }, [fetchReadinessScore])
+
+  const handleExport = async () => {
+    setIsExporting(true)
+    try {
+      const response = await userApi.exportMyData()
+      const blob = response.data instanceof Blob ? response.data : new Blob([response.data])
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `my_readiness_report.pdf`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+      toast.success('Report downloaded successfully')
+    } catch (error: any) {
+      console.error('Export failed:', error)
+      toast.error('Failed to download report')
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   const getScoreColor = (score: number) => {
     if (score >= 75) return 'text-[#00C896]'
@@ -107,11 +133,17 @@ export function TraineeDashboard() {
   return (
     <div className="space-y-8">
       {/* Welcome Section */}
-      <div>
-        <h1 className="text-3xl font-bold text-[#F0F0FF]">Welcome back, {user?.full_name?.split(' ')[0]}!</h1>
-        <p className="mt-2 text-[#8888AA]">
-          Track your progress and complete evaluations to improve your developer readiness score.
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-[#F0F0FF]">Welcome back, {user?.full_name?.split(' ')[0]}!</h1>
+          <p className="mt-2 text-[#8888AA]">
+            Track your progress and complete evaluations to improve your developer readiness score.
+          </p>
+        </div>
+        <Button onClick={handleExport} disabled={isExporting} className="gap-2 bg-[#6C63FF] hover:bg-[#5a52d5] text-white">
+          <Download className="h-4 w-4" />
+          Download My Report
+        </Button>
       </div>
 
       {/* Readiness Score Overview */}

@@ -14,6 +14,7 @@ from app.models.evaluation import Evaluation
 from app.models.readiness import ReadinessScore
 from app.schemas.evaluation import EvaluationResponse
 from app.services.auth import get_current_instructor
+from app.utils.pdf_generator import generate_trainee_report_pdf, generate_all_trainees_report_pdf
 
 router = APIRouter(prefix="/instructor", tags=["Instructor Analytics"])
 
@@ -268,18 +269,55 @@ async def export_trainee_report(
             headers={"Content-Disposition": f"attachment; filename=trainee_{trainee_id}_report.csv"}
         )
     else:
-        # Simple text-based PDF fallback (or just a text file for now)
-        # In a real app, use reportlab or fpdf2
-        report_text = f"Trainee Report: {trainee.full_name}\n"
-        report_text += f"Email: {trainee.email}\n"
-        report_text += f"Readiness Score: {score.overall_score if score else 0}%\n\n"
-        report_text += "Evaluations:\n"
-        for e in evaluations:
-            report_text += f"- {e.evaluation_type.value}: {e.score}% ({e.created_at})\n"
-            report_text += f"  Feedback: {e.feedback}\n"
-        
+        pdf_buffer = generate_trainee_report_pdf(trainee, score, evaluations)
         return StreamingResponse(
-            io.BytesIO(report_text.encode()),
-            media_type="application/pdf", # Telling the browser it's a PDF even if it's text
+            pdf_buffer,
+            media_type="application/pdf",
             headers={"Content-Disposition": f"attachment; filename=trainee_{trainee_id}_report.pdf"}
+        )
+
+@router.get("/export-all")
+async def export_all_trainees_report(
+    format: str = Query("pdf", enum=["csv", "pdf"]),
+    current_user: User = Depends(get_current_instructor),
+    db: AsyncSession = Depends(get_db)
+):
+    """Export all assigned trainees as CSV or PDF."""
+    query = select(User).where(User.role == UserRole.TRAINEE)
+    if current_user.role != UserRole.ADMIN:
+        query = query.where(User.instructor_id == current_user.id)
+    
+    result = await db.execute(query)
+    trainees = result.scalars().all()
+    
+    trainees_data = []
+    for t in trainees:
+        score_res = await db.execute(select(ReadinessScore).where(ReadinessScore.user_id == t.id))
+        score = score_res.scalar_one_or_none()
+        trainees_data.append({
+            "full_name": t.full_name,
+            "email": t.email,
+            "readiness_score": round(score.overall_score, 2) if score else 0,
+            "last_active": t.updated_at.strftime("%Y-%m-%d %H:%M") if t.updated_at else "N/A"
+        })
+        
+    if format == "csv":
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["Name", "Email", "Readiness Score", "Last Active"])
+        for td in trainees_data:
+            writer.writerow([td["full_name"], td["email"], f"{td['readiness_score']}%", td["last_active"]])
+            
+        output.seek(0)
+        return StreamingResponse(
+            io.BytesIO(output.getvalue().encode()),
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=all_trainees_report.csv"}
+        )
+    else:
+        pdf_buffer = generate_all_trainees_report_pdf(trainees_data)
+        return StreamingResponse(
+            pdf_buffer,
+            media_type="application/pdf",
+            headers={"Content-Disposition": "attachment; filename=all_trainees_report.pdf"}
         )

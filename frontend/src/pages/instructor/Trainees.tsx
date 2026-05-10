@@ -22,6 +22,7 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  Download,
 } from 'lucide-react'
 
 interface Trainee {
@@ -55,6 +56,7 @@ export function TraineesPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [isInviteOpen, setIsInviteOpen] = useState(false)
   const [isInviting, setIsInviting] = useState(false)
+  const [isExportingAll, setIsExportingAll] = useState(false)
 
   const {
     register,
@@ -109,6 +111,28 @@ export function TraineesPage() {
     }
   }
 
+  const handleExportAll = async (format: 'pdf' | 'csv') => {
+    setIsExportingAll(true)
+    try {
+      const response = await instructorApi.exportAll(format)
+      const blob = response.data instanceof Blob ? response.data : new Blob([response.data])
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `all_trainees_report.${format}`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+      toast.success(`Report exported as ${format.toUpperCase()}`)
+    } catch (error: any) {
+      console.error('Export failed:', error)
+      toast.error('Failed to export report')
+    } finally {
+      setIsExportingAll(false)
+    }
+  }
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'improving':
@@ -150,13 +174,22 @@ export function TraineesPage() {
           </p>
         </div>
 
-        <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <UserPlus className="mr-2 h-4 w-4" />
-              Invite Trainee
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => handleExportAll('csv')} disabled={isExportingAll || trainees.length === 0}>
+            <Download className="mr-2 h-4 w-4" />
+            Export CSV
+          </Button>
+          <Button variant="outline" onClick={() => handleExportAll('pdf')} disabled={isExportingAll || trainees.length === 0}>
+            <Download className="mr-2 h-4 w-4" />
+            Export PDF
+          </Button>
+          <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <UserPlus className="mr-2 h-4 w-4" />
+                Invite Trainee
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Invite Trainee</DialogTitle>
@@ -191,6 +224,7 @@ export function TraineesPage() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Search */}

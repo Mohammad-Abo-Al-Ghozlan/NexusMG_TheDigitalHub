@@ -26,7 +26,8 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError) => {
-    if (error.response?.status === 401) {
+    // Don't redirect if the request was to the login endpoint itself
+    if (error.response?.status === 401 && !error.config?.url?.includes('/auth/login')) {
       localStorage.removeItem('access_token')
       localStorage.removeItem('user')
       window.location.href = '/login'
@@ -52,6 +53,7 @@ export const userApi = {
   updateProfile: (data: Record<string, unknown>) => api.put('/users/me', data),
   getAll: () => api.get('/users/trainees'), // Match backend: list_all_trainees
   getById: (id: string) => api.get(`/users/trainees/${id}`),
+  exportMyData: () => api.get('/users/me/export', { responseType: 'blob' }),
 }
 
 // CV Evaluation API
@@ -115,6 +117,8 @@ export const instructorApi = {
   getAnalytics: () => api.get('/instructor/analytics'),
   exportReport: (traineeId: string, format: 'pdf' | 'csv') =>
     api.get(`/instructor/export/${traineeId}`, { params: { format }, responseType: 'blob' }),
+  exportAll: (format: 'pdf' | 'csv') => 
+    api.get('/instructor/export-all', { params: { format }, responseType: 'blob' }),
   inviteTrainee: (email: string) => api.post('/instructor/invite', { email }),
 }
 
