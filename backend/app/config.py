@@ -54,6 +54,20 @@ class Settings(BaseSettings):
     PROXYCURL_API_KEY: SecretStr = SecretStr("")
     LinkdAPI_API_KEY: SecretStr = SecretStr("")
     LINKDAPI_BASE_URL: str = "https://linkdapi.com/api/v1"
+
+    # OAuth
+    GOOGLE_CLIENT_ID: str = ""
+
+    # Email (SMTP)
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: SecretStr = SecretStr("")
+    SMTP_FROM: str = ""
+    SMTP_USE_TLS: bool = True
+
+    # Public app URL (used for email links)
+    APP_BASE_URL: str = "http://localhost:3000"
     
     # File Upload
     MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10MB

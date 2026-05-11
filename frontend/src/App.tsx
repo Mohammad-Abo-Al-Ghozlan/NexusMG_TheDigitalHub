@@ -8,11 +8,11 @@ import { useAuthStore } from '@/stores/authStore'
 import { PublicLayout } from '@/layouts/PublicLayout'
 import { DashboardLayout } from '@/layouts/DashboardLayout'
 import { OnboardingGuard } from '@/components/guards/OnboardingGuard'
-
 // Public Pages
 import { LandingPage } from '@/pages/public/LandingPage'
 import { LoginPage } from '@/pages/auth/LoginPage'
 import { RegisterPage } from '@/pages/auth/RegisterPage'
+import { VerifyEmailPage } from '@/pages/auth/VerifyEmailPage'
 
 // Trainee Pages
 import { Onboarding } from '@/pages/trainee/Onboarding'
@@ -24,6 +24,8 @@ import { IdeaEvaluationPage } from '@/pages/trainee/IdeaEvaluation'
 import { InterviewPage } from '@/pages/trainee/Interview'
 import { EnglishAssessmentPage } from '@/pages/trainee/EnglishAssessment'
 import { ProfilePage } from '@/pages/trainee/Profile'
+import { CareerAdvisorPage } from '@/pages/shared/CareerAdvisor'
+import { MessagesPage } from '@/pages/shared/Messages'
 
 // Instructor Pages
 import { InstructorDashboard } from '@/pages/instructor/Dashboard'
@@ -75,6 +77,7 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
         </Route>
 
         {/* Trainee Routes */}
@@ -95,6 +98,8 @@ export default function App() {
             <Route path="idea" element={<IdeaEvaluationPage />} />
             <Route path="interview" element={<InterviewPage />} />
             <Route path="english" element={<EnglishAssessmentPage />} />
+            <Route path="advisor" element={<CareerAdvisorPage />} />
+            <Route path="messages" element={<MessagesPage />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
         </Route>
@@ -112,6 +117,8 @@ export default function App() {
           <Route path="trainees" element={<TraineesPage />} />
           <Route path="trainees/:id" element={<TraineeDetailPage />} />
           <Route path="analytics" element={<AnalyticsPage />} />
+          <Route path="advisor" element={<CareerAdvisorPage />} />
+          <Route path="messages" element={<MessagesPage />} />
           <Route path="profile" element={<ProfilePage />} />
         </Route>
 

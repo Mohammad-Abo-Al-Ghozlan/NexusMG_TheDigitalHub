@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useCallback, useEffect, useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { useEvaluationStore } from '@/stores/evaluationStore'
 import { userApi } from '@/services/api'
@@ -81,12 +81,58 @@ const modules = [
 
 export function TraineeDashboard() {
   const { user } = useAuthStore()
-  const { readinessScore, fetchReadinessScore, readinessLoading } = useEvaluationStore()
+  const {
+    readinessScore,
+    fetchReadinessScore,
+    readinessLoading,
+    cvResults,
+    fetchCVResults,
+    githubEvaluations,
+    fetchGitHubEvaluations,
+    linkedinEvaluations,
+    fetchLinkedInEvaluations,
+    ideaEvaluations,
+    fetchIdeaEvaluations,
+    interviewResults,
+    fetchInterviewResults,
+    englishResults,
+    fetchEnglishResults,
+  } = useEvaluationStore()
   const [isExporting, setIsExporting] = useState(false)
+  const location = useLocation()
+
+  const loadDashboardData = useCallback(() => {
+    void fetchReadinessScore()
+    void fetchCVResults()
+    void fetchGitHubEvaluations()
+    void fetchLinkedInEvaluations()
+    void fetchIdeaEvaluations()
+    void fetchInterviewResults()
+    void fetchEnglishResults()
+  }, [
+    fetchReadinessScore,
+    fetchCVResults,
+    fetchGitHubEvaluations,
+    fetchLinkedInEvaluations,
+    fetchIdeaEvaluations,
+    fetchInterviewResults,
+    fetchEnglishResults,
+  ])
 
   useEffect(() => {
-    fetchReadinessScore()
-  }, [fetchReadinessScore])
+    if (location.pathname !== '/dashboard') return
+    loadDashboardData()
+  }, [location.pathname, loadDashboardData])
+
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState !== 'visible') return
+      if (window.location.pathname !== '/dashboard') return
+      loadDashboardData()
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => document.removeEventListener('visibilitychange', onVis)
+  }, [loadDashboardData])
 
   const handleExport = async () => {
     setIsExporting(true)
@@ -129,6 +175,35 @@ export function TraineeDashboard() {
         return <Badge variant="secondary">Beginner</Badge>
     }
   }
+
+  const latestScores = {
+    cv: cvResults[0]?.score,
+    github: githubEvaluations[0]?.score,
+    linkedin: linkedinEvaluations[0]?.score,
+    idea: ideaEvaluations[0]?.score,
+    interview: interviewResults[0]?.score,
+    english: englishResults[0]?.score,
+  }
+
+  const resolveScore = (moduleId: keyof typeof latestScores) => {
+    const latest = latestScores[moduleId]
+    if (typeof latest === 'number') return latest
+    const fallback = readinessScore?.modules?.[moduleId]
+    return typeof fallback === 'number' ? fallback : undefined
+  }
+
+  const resolvedModuleScores = {
+    cv: resolveScore('cv'),
+    github: resolveScore('github'),
+    linkedin: resolveScore('linkedin'),
+    idea: resolveScore('idea'),
+    interview: resolveScore('interview'),
+    english: resolveScore('english'),
+  }
+
+  const moduleScoreValues = Object.values(resolvedModuleScores).filter(
+    (value): value is number => typeof value === 'number'
+  )
 
   return (
     <div className="space-y-8">
@@ -227,23 +302,19 @@ export function TraineeDashboard() {
             <div className="flex items-center justify-between rounded-xl bg-[#0A0A0F] border border-[#1E1E2E] p-3">
               <span className="text-sm text-[#8888AA]">Modules Completed</span>
               <span className="text-lg font-bold font-score text-[#F0F0FF]">
-                {readinessScore ? Object.values(readinessScore.modules).filter(v => v > 0).length : 0}/6
+                {moduleScoreValues.filter(v => v > 0).length}/6
               </span>
             </div>
             <div className="flex items-center justify-between rounded-xl bg-[#0A0A0F] border border-[#1E1E2E] p-3">
               <span className="text-sm text-[#8888AA]">Best Score</span>
               <span className="text-lg font-bold font-score text-[#00C896]">
-                {readinessScore ? Math.max(...Object.values(readinessScore.modules)) : 0}%
+                {moduleScoreValues.length ? Math.max(...moduleScoreValues) : 0}%
               </span>
             </div>
             <div className="flex items-center justify-between rounded-xl bg-[#0A0A0F] border border-[#1E1E2E] p-3">
               <span className="text-sm text-[#8888AA]">Needs Work</span>
               <span className="text-lg font-bold font-score text-[#FFB830]">
-                {readinessScore 
-                  ? Object.entries(readinessScore.modules)
-                      .filter(([, v]) => v > 0 && v < 50)
-                      .length 
-                  : 0}
+                {moduleScoreValues.filter((v) => v > 0 && v < 50).length}
               </span>
             </div>
           </CardContent>
@@ -255,7 +326,7 @@ export function TraineeDashboard() {
         <h2 className="mb-4 text-xl font-semibold text-[#F0F0FF]">Evaluation Modules</h2>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 stagger-children">
           {modules.map((module) => {
-            const score = readinessScore?.modules[module.id as keyof typeof readinessScore.modules]
+            const score = resolvedModuleScores[module.id as keyof typeof resolvedModuleScores]
             const isCompleted = score !== undefined && score > 0
             
             return (
@@ -267,7 +338,7 @@ export function TraineeDashboard() {
                     </div>
                     {isCompleted && (
                       <Badge variant="outline" className="border-[#00C89640] bg-[#00C89610] text-[#00C896] font-score">
-                        {score}%
+                        {score.toFixed(2)}%
                       </Badge>
                     )}
                   </div>

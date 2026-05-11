@@ -13,6 +13,8 @@ For developers, NexusMG is a **pre-flight check** before hitting the job market.
 *   **System Design Evaluator:** Validates project architectures for scalability and best practices.
 *   **Linguistic & Technical Stress Tests:** Evaluates English proficiency and technical articulation via AI-driven mock interviews.
 *   **Comprehensive Reporting & Analytics:** Generates professional, downloadable PDF and CSV performance reports for both individual trainees and instructors managing cohorts.
+*   **Real-time Messaging Hub:** Private chat between trainees, instructors, and admins with WebSocket delivery.
+*   **Verified Identity Access:** Email verification + Google OAuth sign-in without disrupting JWT auth.
 
 ## ⚙️ How It Works: The Evaluation Pipeline
 NexusMG operates as a centralized scoring engine:
@@ -94,7 +96,7 @@ Most AI tools are simple "Chat with your PDF" wrappers. NexusMG is an **Evaluato
 1. **Clone & Environment**
    ```bash
    git clone https://github.com/Mohammad-Abo-Al-Ghozlan/NexusMG_TheDigitalHub.git
-   # Setup .env with GROQ_API_KEY, GEMINI_API_KEY, PROXYCURL_API_KEY, and DB_URL
+  # Setup .env with GROQ_API_KEY, GEMINI_API_KEY, PROXYCURL_API_KEY, and DB_URL
    ```
 2. **Backend Services**
    ```bash
@@ -118,6 +120,45 @@ npm install
 npm run dev        # frontend
 npm run dev:backend
 npm run dev:all
+```
+
+### Auth & Email Verification Setup
+Add the following to backend `.env` (free/easy option: Gmail SMTP with an app password):
+```bash
+GOOGLE_CLIENT_ID=
+APP_BASE_URL=http://localhost:3000
+
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_gmail@gmail.com
+SMTP_PASSWORD=your_app_password
+SMTP_FROM="NexusMG <your_gmail@gmail.com>"
+SMTP_USE_TLS=true
+```
+
+Add to frontend `.env`:
+```bash
+VITE_GOOGLE_CLIENT_ID=
+```
+
+Run the DB update script if needed:
+```
+db_update_2026_05_12_auth.sql
+```
+
+## 💬 Messaging (Real-time)
+NexusMG includes a private messaging layer between trainees, instructors, and admins.
+
+**WebSocket**
+```
+/api/v1/messages/ws?token=<JWT>
+```
+
+**REST**
+```
+GET  /api/v1/messages/contacts
+GET  /api/v1/messages/history/{contact_id}
+POST /api/v1/messages/send
 ```
 
 ## 🗺 Strategic Roadmap

@@ -10,6 +10,8 @@ export interface User {
   avatar_url?: string
   created_at: string
   is_onboarded: boolean
+  email_verified?: boolean
+  auth_provider?: string
 }
 
 interface AuthState {
@@ -20,9 +22,11 @@ interface AuthState {
   error: string | null
   
   login: (email: string, password: string) => Promise<void>
-  register: (data: { email: string; password: string; full_name: string; role?: string }) => Promise<void>
+  register: (data: { email: string; password: string; full_name: string; role?: string }) => Promise<{ message: string; requires_verification: boolean; email: string }>
+  googleLogin: (credential: string) => Promise<void>
   logout: () => void
   fetchUser: () => Promise<void>
+  applyAuth: (accessToken: string, user: User) => void
   clearError: () => void
 }
 
@@ -35,13 +39,17 @@ export const useAuthStore = create<AuthState>()(
       isLoading: typeof window !== 'undefined' ? !!localStorage.getItem('access_token') : false,
       error: null,
 
+      applyAuth: (accessToken: string, user: User) => {
+        localStorage.setItem('access_token', accessToken)
+        set({ user, token: accessToken, isAuthenticated: true, isLoading: false })
+      },
+
       login: async (email: string, password: string) => {
         set({ isLoading: true, error: null })
         try {
           const response = await authApi.login(email, password)
           const { access_token, user } = response.data
-          localStorage.setItem('access_token', access_token)
-          set({ user, token: access_token, isAuthenticated: true, isLoading: false })
+          get().applyAuth(access_token, user)
         } catch (error: unknown) {
           const err = error as { response?: { data?: { detail?: string } } }
           set({ 
@@ -56,14 +64,29 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null })
         try {
           const response = await authApi.register(data)
-          const { access_token, user } = response.data
-          localStorage.setItem('access_token', access_token)
-          set({ user, token: access_token, isAuthenticated: true, isLoading: false })
+          set({ isLoading: false })
+          return response.data
         } catch (error: unknown) {
           const err = error as { response?: { data?: { detail?: string } } }
           set({ 
             error: err.response?.data?.detail || 'Registration failed', 
             isLoading: false 
+          })
+          throw error
+        }
+      },
+
+      googleLogin: async (credential: string) => {
+        set({ isLoading: true, error: null })
+        try {
+          const response = await authApi.googleLogin({ credential })
+          const { access_token, user } = response.data
+          get().applyAuth(access_token, user)
+        } catch (error: unknown) {
+          const err = error as { response?: { data?: { detail?: string } } }
+          set({
+            error: err.response?.data?.detail || 'Google login failed',
+            isLoading: false,
           })
           throw error
         }

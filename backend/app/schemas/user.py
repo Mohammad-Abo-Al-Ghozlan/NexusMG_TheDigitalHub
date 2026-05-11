@@ -35,6 +35,8 @@ class UserResponse(UserBase):
     id: int
     role: UserRole
     is_active: bool
+    email_verified: bool = False
+    auth_provider: Optional[str] = None
     avatar_url: Optional[str] = None
     phone: Optional[str] = None
     university: Optional[str] = None
@@ -56,6 +58,11 @@ class UserLogin(BaseModel):
     password: str
 
 
+class GoogleAuthRequest(BaseModel):
+    credential: str
+    invite_code: Optional[str] = None
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
@@ -63,6 +70,20 @@ class Token(BaseModel):
 
 class AuthResponse(Token):
     user: UserResponse
+
+
+class RegistrationResponse(BaseModel):
+    message: str
+    requires_verification: bool = True
+    email: EmailStr
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+
+class VerifyEmailResponse(BaseModel):
+    message: str
 
 
 class TokenData(BaseModel):

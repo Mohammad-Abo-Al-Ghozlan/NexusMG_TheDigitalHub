@@ -479,3 +479,38 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+-- NexusMG DB update: auth verification + Google OAuth + messages
+
+-- 1) User auth/verification fields
+ALTER TABLE users
+  ADD COLUMN auth_provider VARCHAR(20) NOT NULL DEFAULT 'local',
+  ADD COLUMN google_id VARCHAR(255) NULL,
+  ADD COLUMN google_email VARCHAR(255) NULL,
+  ADD COLUMN email_verified TINYINT(1) NOT NULL DEFAULT 0,
+  ADD COLUMN email_verified_at DATETIME NULL,
+  ADD COLUMN email_verification_token VARCHAR(255) NULL,
+  ADD COLUMN email_verification_expires DATETIME NULL;
+
+CREATE UNIQUE INDEX ux_users_google_id ON users (google_id);
+CREATE UNIQUE INDEX ux_users_email_verification_token ON users (email_verification_token);
+CREATE INDEX ix_users_auth_provider ON users (auth_provider);
+
+-- Mark existing accounts as verified to avoid blocking login
+UPDATE users SET email_verified = 1 WHERE email_verified = 0;
+
+-- 2) Messages table (real-time chat)
+CREATE TABLE IF NOT EXISTS messages (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  sender_id INT NOT NULL,
+  recipient_id INT NOT NULL,
+  content TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  read_at DATETIME NULL,
+  CONSTRAINT fk_messages_sender FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_messages_recipient FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX ix_messages_sender_recipient_created ON messages (sender_id, recipient_id, created_at);
+CREATE INDEX ix_messages_recipient_created ON messages (recipient_id, created_at);
+CREATE INDEX ix_messages_sender_created ON messages (sender_id, created_at);

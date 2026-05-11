@@ -339,6 +339,52 @@ Provide analysis in this exact JSON format:
         
         response = await self.analyze(prompt, system_prompt)
         return self._parse_json_response(response, self._default_readiness_summary())
+
+    async def generate_career_advice(
+        self,
+        user_profile: Dict[str, Any],
+        evaluations: Dict[str, Any],
+        target_role: str,
+        message: str
+    ) -> str:
+        """Generate structured career advice based on profile and evaluations."""
+        system_prompt = """You are NexusMG Career AI, an intelligent career advisor specialized in software engineering and tech careers.
+
+Rules:
+- Be direct, concise, and actionable.
+- Prioritize practical improvements over generic motivation.
+- Identify weak points clearly.
+- Recommend the highest-impact next steps first.
+- Tailor advice based on the target role.
+- Respond in a professional mentor-like tone.
+- Output structured sections:
+    1. Strengths
+    2. Weaknesses
+    3. Missing Skills
+    4. Priority Improvements
+    5. Suggested Next Steps
+"""
+
+        prompt = f"""Analyze the user's data and respond with the required sections.
+
+Target Role:
+{target_role}
+
+User Message:
+{message}
+
+User Profile:
+{json.dumps(user_profile, indent=2)}
+
+Evaluation Summaries:
+{json.dumps(evaluations, indent=2)}
+"""
+
+        response = await self.analyze(prompt, system_prompt)
+        content = response.strip()
+        if content.startswith("{"):
+            return self._default_career_advice(target_role)
+        return content
     
     async def generate_onboarding_questions(self) -> List[Dict]:
         """Generate dynamic onboarding questions for a new trainee."""
@@ -392,6 +438,15 @@ Provide analysis in this exact JSON format:
         except json.JSONDecodeError:
             pass
         return default
+
+    def _default_career_advice(self, target_role: str) -> str:
+        return (
+            f"Strengths\n- Consistent evaluation progress and clear interest in {target_role}.\n\n"
+            "Weaknesses\n- Limited evidence provided in the profile data.\n\n"
+            "Missing Skills\n- Role-specific depth and project impact metrics.\n\n"
+            "Priority Improvements\n- Add 2-3 quantified project outcomes.\n- Tighten the portfolio narrative for the target role.\n\n"
+            "Suggested Next Steps\n- Update your CV and LinkedIn with measurable results.\n- Build or refine one flagship project aligned to the target role."
+        )
     
     def _mock_response(self, prompt: str) -> str:
         """Return mock response when API is not available."""

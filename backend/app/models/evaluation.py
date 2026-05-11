@@ -21,6 +21,10 @@ class EvaluationStatus(str, enum.Enum):
     FAILED = "failed"
 
 
+def _enum_values(enum_cls: enum.EnumMeta):
+    return [member.value for member in enum_cls]
+
+
 class Evaluation(Base):
     __tablename__ = "evaluations"
     __table_args__ = (
@@ -30,8 +34,14 @@ class Evaluation(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    evaluation_type = Column(Enum(EvaluationType), nullable=False)
-    status = Column(Enum(EvaluationStatus), default=EvaluationStatus.PENDING)
+    evaluation_type = Column(
+        Enum(EvaluationType, values_callable=_enum_values, name="evaluationtype"),
+        nullable=False,
+    )
+    status = Column(
+        Enum(EvaluationStatus, values_callable=_enum_values, name="evaluationstatus"),
+        default=EvaluationStatus.PENDING,
+    )
     
     # Score (0-100)
     score = Column(Float, nullable=True)
@@ -166,3 +176,37 @@ class EnglishEvaluation(Base):
     vocabulary_score = Column(Float, nullable=True)
     fluency_score = Column(Float, nullable=True)
     comprehension_score = Column(Float, nullable=True)
+
+
+class EvaluationNote(Base):
+    __tablename__ = "evaluation_notes"
+    __table_args__ = (
+        Index("ix_evaluation_notes_trainee_module", "trainee_id", "module", unique=True),
+        Index("ix_evaluation_notes_trainee", "trainee_id"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    trainee_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    instructor_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    module = Column(
+        Enum(EvaluationType, values_callable=_enum_values, name="evaluationtype"),
+        nullable=False,
+    )
+    note = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
+
+    trainee = relationship("User", foreign_keys=[trainee_id], back_populates="evaluation_notes")
+    instructor = relationship("User", foreign_keys=[instructor_id], back_populates="authored_notes")
+
+    @property
+    def instructor_name(self) -> str | None:
+        if not self.instructor:
+            return None
+        return self.instructor.full_name
+
+    @property
+    def instructor_role(self) -> str | None:
+        if not self.instructor or not self.instructor.role:
+            return None
+        return self.instructor.role.value

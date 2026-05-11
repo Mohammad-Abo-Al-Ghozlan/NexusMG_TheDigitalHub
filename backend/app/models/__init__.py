@@ -8,9 +8,11 @@ from app.models.evaluation import (
     LinkedInEvaluation,
     IdeaEvaluation,
     InterviewEvaluation,
-    EnglishEvaluation
+    EnglishEvaluation,
+    EvaluationNote
 )
 from app.models.readiness import ReadinessScore
+from app.models.message import Message
 
 __all__ = [
     "User",
@@ -25,5 +27,7 @@ __all__ = [
     "IdeaEvaluation",
     "InterviewEvaluation",
     "EnglishEvaluation",
-    "ReadinessScore"
+    "EvaluationNote",
+    "ReadinessScore",
+    "Message"
 ]

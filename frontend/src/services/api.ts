@@ -1,6 +1,6 @@
 import axios, { type AxiosError, type AxiosResponse } from 'axios'
 
-const API_URL = import.meta.env.VITE_API_URL || '/api'
+const API_URL = import.meta.env.VITE_API_URL || '/api/v1'
 
 export const api = axios.create({
   baseURL: API_URL,
@@ -42,6 +42,10 @@ export const authApi = {
     api.post('/auth/login', { email, password }),
   register: (data: { email: string; password: string; full_name: string; role?: string }) =>
     api.post('/auth/register', data),
+  googleLogin: (data: { credential: string; invite_code?: string }) =>
+    api.post('/auth/google', data),
+  verifyEmail: (token: string) => api.get(`/auth/verify-email`, { params: { token } }),
+  resendVerification: (email: string) => api.post('/auth/resend-verification', { email }),
   logout: () => api.post('/auth/logout'),
   me: () => api.get('/auth/me'),
   refreshToken: () => api.post('/auth/refresh'),
@@ -123,6 +127,26 @@ export const instructorApi = {
   exportAll: (format: 'pdf' | 'csv') => 
     api.get('/instructor/export-all', { params: { format }, responseType: 'blob' }),
   inviteTrainee: (email: string) => api.post('/instructor/invite', { email }),
+}
+
+// Evaluation Notes API
+export const notesApi = {
+  getMyNotes: () => api.get('/evaluation-notes/me'),
+  getTraineeNotes: (traineeId: string) => api.get(`/evaluation-notes/trainees/${traineeId}`),
+  upsertTraineeNotes: (traineeId: string, notes: { module: string; note: string }[]) =>
+    api.put(`/evaluation-notes/trainees/${traineeId}`, { notes }),
+}
+
+// Career Advisor API
+export const careerAdvisorApi = {
+  getAdvice: (data: { target_role?: string; message?: string }) => api.post('/career-advisor/advice', data),
+}
+
+// Messages API
+export const messagesApi = {
+  getContacts: () => api.get('/messages/contacts'),
+  getHistory: (contactId: number) => api.get(`/messages/history/${contactId}`),
+  sendMessage: (data: { recipient_id: number; content: string }) => api.post('/messages/send', data),
 }
 
 // Readiness Score API

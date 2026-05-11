@@ -1,5 +1,7 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
+import { useMessagesStore } from '@/stores/messagesStore'
+import { messagesSocket } from '@/lib/messagesSocket'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -30,22 +32,30 @@ import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 
 const traineeNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard/messages', label: 'Messages', icon: MessageSquare },
   { href: '/dashboard/cv', label: 'CV Audit', icon: FileText },
   { href: '/dashboard/github', label: 'GitHub Forensics', icon: Github },
   { href: '/dashboard/linkedin', label: 'LinkedIn Signal', icon: Linkedin },
   { href: '/dashboard/idea', label: 'Architecture Audit', icon: Lightbulb },
   { href: '/dashboard/interview', label: 'Mock Interview', icon: MessageSquare },
   { href: '/dashboard/english', label: 'English Proficiency', icon: Languages },
+  { href: '/dashboard/advisor', label: 'Career Advisor', icon: Cpu },
 ]
 
 const instructorNavItems = [
   { href: '/instructor', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/instructor/messages', label: 'Messages', icon: MessageSquare },
   { href: '/instructor/trainees', label: 'Trainees', icon: Users },
   { href: '/instructor/analytics', label: 'Analytics', icon: BarChart3 },
+  { href: '/instructor/advisor', label: 'Career Advisor', icon: Cpu },
   { href: '/instructor/profile', label: 'Profile', icon: User },
 ]
 
 type SidebarMode = 'full' | 'icon' | 'hidden'
+
+function isMessagesRoute(href: string) {
+  return href === '/dashboard/messages' || href === '/instructor/messages'
+}
 
 export function DashboardLayout() {
   const { user, logout } = useAuthStore()
@@ -53,6 +63,19 @@ export function DashboardLayout() {
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [sidebarMode, setSidebarMode] = useState<SidebarMode>('full')
+
+  const messagesUnread = useMessagesStore((s) =>
+    Object.values(s.unreadByContactId).reduce((acc, n) => acc + (n > 0 ? n : 0), 0)
+  )
+
+  useEffect(() => {
+    if (!user?.id) {
+      messagesSocket.disconnect()
+      return
+    }
+    messagesSocket.connect()
+    return () => messagesSocket.disconnect()
+  }, [user?.id])
 
   const navItems = user?.role === 'instructor' || user?.role === 'admin'
     ? instructorNavItems
@@ -167,9 +190,24 @@ export function DashboardLayout() {
                   {isActive && (
                     <div className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-[#6C63FF] shadow-[0_0_8px_#6C63FF] nav-active-indicator" />
                   )}
-                  <item.icon className={cn("h-4 w-4 shrink-0", isActive ? "text-[#6C63FF]" : "")} />
+                  <span className="relative shrink-0">
+                    <item.icon className={cn("h-4 w-4", isActive ? "text-[#6C63FF]" : "")} />
+                    {isMessagesRoute(item.href) && messagesUnread > 0 && (
+                      <span
+                        className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-[#FF4D6D] ring-2 ring-[#111118]"
+                        aria-label={`${messagesUnread} unread messages`}
+                      />
+                    )}
+                  </span>
                   {sidebarMode === 'full' && (
-                    <span className="whitespace-nowrap overflow-hidden">{item.label}</span>
+                    <span className="flex min-w-0 items-center gap-2 whitespace-nowrap overflow-hidden">
+                      {item.label}
+                      {isMessagesRoute(item.href) && messagesUnread > 0 && (
+                        <span className="rounded-full bg-[#FF4D6D] px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                          {messagesUnread > 99 ? '99+' : messagesUnread}
+                        </span>
+                      )}
+                    </span>
                   )}
                   {/* Tooltip for icon mode */}
                   {sidebarMode === 'icon' && (
@@ -292,8 +330,23 @@ export function DashboardLayout() {
                   {isActive && (
                     <div className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-[#6C63FF] shadow-[0_0_8px_#6C63FF]" />
                   )}
-                  <item.icon className={cn("h-4 w-4 shrink-0", isActive ? "text-[#6C63FF]" : "")} />
-                  <span>{item.label}</span>
+                  <span className="relative shrink-0">
+                    <item.icon className={cn("h-4 w-4", isActive ? "text-[#6C63FF]" : "")} />
+                    {isMessagesRoute(item.href) && messagesUnread > 0 && (
+                      <span
+                        className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-[#FF4D6D] ring-2 ring-[#111118]"
+                        aria-hidden
+                      />
+                    )}
+                  </span>
+                  <span className="flex items-center gap-2">
+                    {item.label}
+                    {isMessagesRoute(item.href) && messagesUnread > 0 && (
+                      <span className="rounded-full bg-[#FF4D6D] px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                        {messagesUnread > 99 ? '99+' : messagesUnread}
+                      </span>
+                    )}
+                  </span>
                 </Link>
               )
             })}
@@ -348,7 +401,12 @@ export function DashboardLayout() {
                     : "text-[#44445A] hover:text-[#8888AA]"
                 )}
               >
-                <item.icon className={cn("h-5 w-5", isActive ? "drop-shadow-[0_0_6px_#6C63FF]" : "")} />
+                <span className="relative">
+                  <item.icon className={cn("h-5 w-5", isActive ? "drop-shadow-[0_0_6px_#6C63FF]" : "")} />
+                  {isMessagesRoute(item.href) && messagesUnread > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-[#FF4D6D]" aria-hidden />
+                  )}
+                </span>
                 <span className="truncate max-w-[56px]">{item.label.split(' ')[0]}</span>
               </Link>
             )

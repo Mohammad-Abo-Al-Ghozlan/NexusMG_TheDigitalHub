@@ -6,6 +6,8 @@ export interface User {
   avatar_url?: string
   created_at: string
   updated_at?: string
+  email_verified?: boolean
+  auth_provider?: string
 }
 
 export interface Trainee extends User {

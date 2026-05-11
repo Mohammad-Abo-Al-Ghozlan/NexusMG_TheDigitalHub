@@ -1,4 +1,6 @@
-import { Link } from 'react-router-dom'
+import { useCallback } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -23,6 +25,8 @@ import {
   Globe,
 } from 'lucide-react'
 import { ScrollReveal } from '@/components/ui/ScrollReveal'
+import { GoogleAuthButton } from '@/components/auth/GoogleAuthButton'
+import { useAuthStore } from '@/stores/authStore'
 
 const features = [
   { 
@@ -70,6 +74,28 @@ const features = [
 ]
 
 export function LandingPage() {
+  const navigate = useNavigate()
+  const { googleLogin, clearError } = useAuthStore()
+
+  const handleGoogleSuccess = useCallback(
+    async (credential: string) => {
+      try {
+        clearError()
+        await googleLogin(credential)
+        const { user } = useAuthStore.getState()
+        toast.success('Welcome!')
+        if (user?.role === 'instructor' || user?.role === 'admin') {
+          navigate('/instructor')
+        } else {
+          navigate('/dashboard')
+        }
+      } catch {
+        toast.error(useAuthStore.getState().error || 'Google sign-in failed. Please try again.')
+      }
+    },
+    [clearError, googleLogin, navigate]
+  )
+
   return (
     <div className="flex flex-col">
 
@@ -108,20 +134,23 @@ export function LandingPage() {
               </p>
 
               <div
-                className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row animate-fade-up"
+                className="mt-10 flex w-full max-w-md flex-col items-stretch justify-center gap-3 sm:max-w-none sm:flex-row sm:items-start sm:gap-4 animate-fade-up mx-auto sm:mx-0"
                 style={{ animationDelay: '240ms' }}
               >
-                <Link to="/register">
-                  <Button size="lg" className="gap-2 min-w-[200px]">
+                <Link to="/register" className="sm:shrink-0">
+                  <Button size="lg" className="gap-2 min-w-[200px] w-full sm:w-auto">
                     Get Your Readiness Score
                     <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
                   </Button>
                 </Link>
-                <Link to="/samples">
-                  <Button size="lg" variant="outline" className="min-w-[160px]">
+                <Link to="/samples" className="sm:shrink-0">
+                  <Button size="lg" variant="outline" className="min-w-[160px] w-full sm:w-auto">
                     View Sample Audit
                   </Button>
                 </Link>
+                <div className="w-full min-w-0 sm:max-w-[260px] sm:pt-0.5">
+                  <GoogleAuthButton onSuccess={handleGoogleSuccess} label="Sign in with Google" />
+                </div>
               </div>
             </div>
           </div>
