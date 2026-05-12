@@ -37,6 +37,14 @@ const roleBadgeStyles: Record<string, string> = {
   admin: 'bg-[#FFB83015] text-[#FFB830] border-[#FFB83030]',
 }
 
+const roleGroupOrder: Contact['role'][] = ['admin', 'instructor', 'trainee']
+
+const roleGroupLabels: Record<Contact['role'], string> = {
+  admin: 'Admins',
+  instructor: 'Instructors',
+  trainee: 'Trainees',
+}
+
 function appendMessageDeduped(prev: ChatMessage[], message: ChatMessage): ChatMessage[] {
   if (prev.some((m) => m.id === message.id)) return prev
   return [...prev, message]
@@ -87,6 +95,16 @@ export function MessagesPage() {
     if (!selectedContactId) return 0
     return unreadByContactId[selectedContactId] || 0
   }, [unreadByContactId, selectedContactId])
+
+  const groupedContacts = useMemo(() => {
+    return roleGroupOrder
+      .map((role) => ({
+        role,
+        label: roleGroupLabels[role],
+        contacts: filteredContacts.filter((contact) => contact.role === role),
+      }))
+      .filter((group) => group.contacts.length > 0)
+  }, [filteredContacts])
 
   useEffect(() => {
     selectedContactRef.current = selectedContactId
@@ -247,59 +265,68 @@ export function MessagesPage() {
                   No contacts found.
                 </div>
               ) : (
-                <ul className="flex flex-col gap-2 pb-1">
-                  {filteredContacts.map((contact) => {
-                    const isActive = contact.id === selectedContactId
-                    const unread = unreadByContactId[contact.id] || 0
-                    return (
-                      <li key={contact.id} className="min-w-0">
-                        <button
-                          type="button"
-                          onClick={() => handleSelectContact(contact.id)}
-                          className={`flex w-full flex-col gap-2 rounded-xl border p-3 text-left transition-all ${
-                            isActive
-                              ? 'border-[#6C63FF] bg-[#6C63FF12] shadow-[0_0_0_1px_rgba(108,99,255,0.25)]'
-                              : 'border-[#1E1E2E] bg-[#0A0A0F] hover:border-[#6C63FF50]'
-                          }`}
-                        >
-                          <div className="flex min-w-0 items-start gap-3">
-                            <div className="relative shrink-0">
-                              <Avatar className="h-10 w-10 ring-1 ring-[#1E1E2E]">
-                                <AvatarImage src={resolveApiAssetUrl(contact.avatar_url)} />
-                                <AvatarFallback className="text-xs">
-                                  {contact.full_name
-                                    .split(' ')
-                                    .map((n) => n[0])
-                                    .join('')
-                                    .toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              {unread > 0 && (
-                                <span
-                                  className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#FF4D6D] px-1 text-[10px] font-bold text-white ring-2 ring-[#0A0A0F]"
-                                  aria-label={`${unread} unread`}
-                                >
-                                  {unread > 9 ? '9+' : unread}
-                                </span>
-                              )}
-                            </div>
-                            <div className="min-w-0 flex-1 space-y-1">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <p className="break-words text-sm font-semibold leading-snug text-[#F0F0FF]">
-                                  {contact.full_name}
-                                </p>
-                              </div>
-                              <p className="break-all text-xs leading-snug text-[#8888AA]">{contact.email}</p>
-                            </div>
-                          </div>
-                          <Badge className={`w-fit shrink-0 border text-[10px] uppercase ${roleBadgeStyles[contact.role]}`}>
-                            {contact.role}
-                          </Badge>
-                        </button>
-                      </li>
-                    )
-                  })}
-                </ul>
+                <div className="space-y-4 pb-1">
+                  {groupedContacts.map((group) => (
+                    <div key={group.role} className="space-y-2">
+                      <div className="px-1 text-[11px] font-semibold uppercase tracking-wide text-[#8888AA]">
+                        {group.label} ({group.contacts.length})
+                      </div>
+                      <ul className="flex flex-col gap-2">
+                        {group.contacts.map((contact) => {
+                          const isActive = contact.id === selectedContactId
+                          const unread = unreadByContactId[contact.id] || 0
+                          return (
+                            <li key={contact.id} className="min-w-0">
+                              <button
+                                type="button"
+                                onClick={() => handleSelectContact(contact.id)}
+                                className={`flex w-full flex-col gap-2 rounded-xl border p-3 text-left transition-all ${
+                                  isActive
+                                    ? 'border-[#6C63FF] bg-[#6C63FF12] shadow-[0_0_0_1px_rgba(108,99,255,0.25)]'
+                                    : 'border-[#1E1E2E] bg-[#0A0A0F] hover:border-[#6C63FF50]'
+                                }`}
+                              >
+                                <div className="flex min-w-0 items-start gap-3">
+                                  <div className="relative shrink-0">
+                                    <Avatar className="h-10 w-10 ring-1 ring-[#1E1E2E]">
+                                      <AvatarImage src={resolveApiAssetUrl(contact.avatar_url)} />
+                                      <AvatarFallback className="text-xs">
+                                        {contact.full_name
+                                          .split(' ')
+                                          .map((n) => n[0])
+                                          .join('')
+                                          .toUpperCase()}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    {unread > 0 && (
+                                      <span
+                                        className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#FF4D6D] px-1 text-[10px] font-bold text-white ring-2 ring-[#0A0A0F]"
+                                        aria-label={`${unread} unread`}
+                                      >
+                                        {unread > 9 ? '9+' : unread}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="min-w-0 flex-1 space-y-1">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <p className="break-words text-sm font-semibold leading-snug text-[#F0F0FF]">
+                                        {contact.full_name}
+                                      </p>
+                                    </div>
+                                    <p className="break-all text-xs leading-snug text-[#8888AA]">{contact.email}</p>
+                                  </div>
+                                </div>
+                                <Badge className={`w-fit shrink-0 border text-[10px] uppercase ${roleBadgeStyles[contact.role]}`}>
+                                  {contact.role}
+                                </Badge>
+                              </button>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
               )}
             </ScrollArea>
           </CardContent>
