@@ -19,7 +19,7 @@ router = APIRouter(prefix="/messages", tags=["Messages"])
 
 def _allowed_roles_for(user: User) -> List[UserRole]:
     if user.role == UserRole.TRAINEE:
-        return [UserRole.INSTRUCTOR, UserRole.ADMIN]
+        return [UserRole.TRAINEE, UserRole.INSTRUCTOR, UserRole.ADMIN]
     if user.role == UserRole.INSTRUCTOR:
         return [UserRole.TRAINEE, UserRole.INSTRUCTOR, UserRole.ADMIN]
     return [UserRole.TRAINEE, UserRole.INSTRUCTOR, UserRole.ADMIN]
