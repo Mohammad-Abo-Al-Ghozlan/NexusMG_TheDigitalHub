@@ -83,6 +83,11 @@ export function MessagesPage() {
     [contacts, selectedContactId]
   )
 
+  const selectedUnread = useMemo(() => {
+    if (!selectedContactId) return 0
+    return unreadByContactId[selectedContactId] || 0
+  }, [unreadByContactId, selectedContactId])
+
   useEffect(() => {
     selectedContactRef.current = selectedContactId
     setActiveThreadContactId(selectedContactId)
@@ -307,6 +312,11 @@ export function MessagesPage() {
                 <CardTitle className="flex flex-wrap items-center gap-2 break-words text-[#F0F0FF]">
                   <MessageSquare className="h-4 w-4 shrink-0 text-[#00D4FF]" />
                   {selectedContact ? selectedContact.full_name : 'Select a contact'}
+                  {selectedUnread > 0 && (
+                    <span className="ml-2 inline-flex items-center gap-1 rounded-md bg-[#FF4D6D] px-2 py-0.5 text-xs font-normal text-white">
+                      New
+                    </span>
+                  )}
                   {headerUnreadElsewhere > 0 && (
                     <span
                       className="inline-flex items-center gap-1 rounded-md border border-[#6C63FF30] bg-[#6C63FF10] px-2 py-0.5 text-xs font-normal text-[#B8B3FF]"

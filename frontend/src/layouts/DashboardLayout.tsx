@@ -214,6 +214,11 @@ export function DashboardLayout() {
                     <div className="absolute left-full ml-2 hidden group-hover:flex items-center z-50">
                       <div className="rounded-lg bg-[#1E1E2E] border border-[#2A2A3E] px-3 py-1.5 text-xs font-medium text-[#F0F0FF] shadow-lg whitespace-nowrap">
                         {item.label}
+                        {isMessagesRoute(item.href) && messagesUnread > 0 && (
+                          <span className="ml-2 inline-flex items-center gap-1 rounded-md bg-[#FF4D6D] px-2 py-0.5 text-xs font-bold text-white">
+                            {messagesUnread > 99 ? '99+' : messagesUnread}
+                          </span>
+                        )}
                       </div>
                     </div>
                   )}

@@ -288,6 +288,13 @@ export function CareerAdvisorPage() {
                         ) : (
                           <div className="rounded-lg border border-[#1E1E2E] bg-[#0A0A0F] p-4 text-sm text-[#C8C8E8] whitespace-pre-wrap">
                             {notes[module.id]?.note || 'No notes yet.'}
+                            {notes[module.id]?.instructor_name && (
+                              <div className="mt-3">
+                                <Badge variant="secondary" className="w-fit">
+                                  {notes[module.id]?.instructor_name}
+                                </Badge>
+                              </div>
+                            )}
                           </div>
                         )}
                       </CardContent>

@@ -179,3 +179,9 @@ NexusMG is architected and maintained by:
 <p align="center">
   <strong>Built for the modern engineering market.</strong>
 </p>
+
+## 🆕 UI Updates
+
+- Messages: Added a visible "new" indicator for unread messages in the sidebar (icon and full mode) and a per-thread "New" badge next to the active chat name to surface unread conversations quickly.
+- Notes: Instructor name now appears as a badge beside trainee-facing notes so trainees can easily see who authored feedback.
+
