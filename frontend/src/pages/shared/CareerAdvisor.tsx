@@ -4,12 +4,14 @@ import { careerAdvisorApi, instructorApi, notesApi } from '@/services/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
-import { Cpu, MessageSquare, Save, Sparkles, Target } from 'lucide-react'
+import { Cpu, MessageSquare, Save, Sparkles } from 'lucide-react'
 
 const modules = [
   { id: 'cv', label: 'CV Evaluation', hint: 'Resume structure and ATS readiness' },
@@ -73,6 +75,7 @@ export function CareerAdvisorPage() {
   const [prompt, setPrompt] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [activeTab, setActiveTab] = useState('notes')
 
   const traineeOptions = useMemo(
     () => trainees.map((t) => ({ value: String(t.id), label: t.full_name || t.email })),
@@ -197,7 +200,13 @@ export function CareerAdvisorPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div
+      className={cn(
+        'space-y-6',
+        activeTab === 'advisor' &&
+          'lg:flex lg:h-[calc(100vh-11rem)] lg:min-h-0 lg:flex-col lg:gap-6 lg:space-y-0 lg:overflow-hidden'
+      )}
+    >
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-bold text-[#F0F0FF]">Career Advisor</h1>
         <p className="text-[#8888AA]">
@@ -205,7 +214,14 @@ export function CareerAdvisorPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="notes" className="space-y-6">
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className={cn(
+          'space-y-6',
+          activeTab === 'advisor' && 'lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:space-y-0 lg:gap-6'
+        )}
+      >
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="notes">Instructor Notes</TabsTrigger>
           <TabsTrigger value="advisor">AI Career Advisor</TabsTrigger>
@@ -306,14 +322,23 @@ export function CareerAdvisorPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="advisor" className="space-y-6">
-          <Card className="border-[#1E1E2E]">
+        <TabsContent
+          value="advisor"
+          className="space-y-6 lg:mt-0 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-hidden"
+        >
+          <Card className="border-[#1E1E2E] lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
             <CardHeader>
-              <CardTitle className="text-[#F0F0FF]">Advisor Output</CardTitle>
-              <CardDescription>Structured feedback with clear priorities.</CardDescription>
+              <CardTitle className="flex items-center gap-2 text-[#F0F0FF]">
+                <Sparkles className="h-5 w-5 text-[#00D4FF]" />
+                AI Career Advisor
+              </CardTitle>
+              <CardDescription>
+                Advisor output and your prompt in one chat workspace.
+              </CardDescription>
             </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[360px]">
+
+            <CardContent className="space-y-4 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
+              <ScrollArea className="h-[360px] lg:min-h-0 lg:flex-1">
                 {messages.length === 0 ? (
                   <div className="rounded-lg border border-dashed border-[#2A2A3E] p-6 text-center text-sm text-[#8888AA]">
                     No advice yet. Ask a question to get started.
@@ -338,56 +363,41 @@ export function CareerAdvisorPage() {
                   </div>
                 )}
               </ScrollArea>
-            </CardContent>
-          </Card>
 
-          <Card className="border-[#1E1E2E]">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-[#F0F0FF]">
-                <Sparkles className="h-5 w-5 text-[#00D4FF]" />
-                AI Career Advisor
-              </CardTitle>
-              <CardDescription>
-                Get direct, structured guidance based on your evaluations.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 lg:grid-cols-[220px,1fr]">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-[#C8C8E8]">Target Role</label>
-                  <Select value={targetRole} onValueChange={setTargetRole}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {roleOptions.map((role) => (
-                        <SelectItem key={role} value={role}>
-                          {role}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-[#C8C8E8]">Your Question</label>
-                  <Textarea
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="Ask for feedback on your portfolio, readiness gaps, or interview prep..."
-                    rows={3}
-                    className="resize-none"
-                  />
-                </div>
-              </div>
+              <div className="space-y-3 border-t border-[#1E1E2E] pt-4">
+                <div className="rounded-xl border border-[#2A2A3E] bg-[#0A0A0F] p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <div className="pointer-events-none absolute bottom-3 right-3 z-10">
+                        <div className="pointer-events-auto">
+                          <Select value={targetRole} onValueChange={setTargetRole}>
+                            <SelectTrigger className="h-8 w-auto min-w-[165px] rounded-full border-[#2A2A3E] bg-[#111118] px-3 text-xs text-[#E6E6FF] hover:border-[#6C63FF60] focus:ring-1 focus:ring-[#6C63FF60]">
+                              <SelectValue placeholder="Select role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {roleOptions.map((role) => (
+                                <SelectItem key={role} value={role}>
+                                  {role}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
 
-              <div className="flex flex-wrap items-center gap-3">
-                <Button onClick={handleSendAdvice} loading={chatLoading} className="gap-2">
-                  <MessageSquare className="h-4 w-4" />
-                  Generate Advice
-                </Button>
-                <div className="flex items-center gap-2 text-xs text-[#8888AA]">
-                  <Target className="h-3.5 w-3.5" />
-                  Uses your latest evaluations and profile data.
+                      <Input
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                        placeholder="Ask for feedback on your portfolio, readiness gaps, or interview prep..."
+                        className="h-12 border-[#1E1E2E] bg-[#0A0A0F] pr-[190px]"
+                      />
+                    </div>
+
+                    <Button onClick={handleSendAdvice} loading={chatLoading} className="h-12 gap-2 px-4">
+                      <MessageSquare className="h-4 w-4" />
+                      Generate Advice
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>
